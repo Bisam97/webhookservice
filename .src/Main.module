@@ -1,7 +1,81 @@
 ' Gambas module file
 
+ Private Server As New ServerSocket As "ser"
+Private $port As Integer
+Private $Serverlist As New Socket[]
+  
+
 Public Sub Main()
 
   Print "Hello world"
+  Print "Init Server...."
+  $port = 8880
+  initServ()
+  
+  
+End
+Public Sub initServ()
+
+  Try Server.Close()
+  
+  Print "Set Port to: " & $port & " ..."
+  Server.Port = $port
+  Server.Type = Net.Internet
+  Server.Listen()
+  While Server.Status Not Net.Active
+    Wait 0.1
+    Print "Starting..."
+  Wend
+  Print "Server Started and Listen"
+End 
+Public Sub Ser_Connection(RemoteHostIP As String)
+
+  Print RemoteHostIP & " Conneted..."
+  $Serverlist.Add(Server.Accept())
+  
+
+End
+
+
+Public Sub Socket_Read()
+
+  Dim s As String
+  Dim sock As Socket
+  Print "Incomming Request\n\n"
+  s = ""
+  s = Read #Last, Lof(Last)
+Print s
+sock = Last
+  Request(s, sock)
+
+End
+Public Sub Request(Request As String, sender As Socket)
+
+  Dim rqu_tmp As String[]
+  Dim rqu_path As String[]
+  Dim rqu_arg As String[]
+  Dim s As String
+
+  rqu_tmp = Split(Request, gb.NewLine)
+  If rqu_tmp.Find("GET*", gb.Like) >= 0 Then 
+    rqu_path = Split(rqu_tmp[rqu_tmp.Find("GET*", gb.Like)], " ")
+    Print rqu_path
+    rqu_arg = Split(rqu_path[1], "?")
+    Select rqu_arg[0]
+      Case "/test"
+        webhook_test(rqu_arg, sender)
+      Case Else 
+          s = "HTTP/1.1 400 Bad Request\nContent-Type: text/plain\nConnection: close"'\nContent-Length: 38\n\nDie Anfrage enthaelt ungueltige Syntax."
+          
+          Write #sender, s, s.Len
+          Flush #sender
+    End Select
+  Endif
+  
+
+End
+Public Sub webhook_test(rqu_arg As String[], sender As Socket)
+
+  
 
 End
