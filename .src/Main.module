@@ -1,6 +1,6 @@
 ' Gambas module file
 
-Private server As New ServerSocket As "ser"
+Private server As New ServerSocket As "server"
 Private port_number As Integer
 Private socket_list As New Socket[]
 
@@ -29,7 +29,7 @@ Public Sub init_server()''erstellen vom server
   
 End 
 
-Public Sub Ser_Connection(RemoteHostIP As String)''Aufruf bei Verbindung
+Public Sub server_Connection(RemoteHostIP As String)''Aufruf bei Verbindung
   
   Print RemoteHostIP & " Conneted..."
   socket_list.Add(Server.Accept())
@@ -39,14 +39,14 @@ End
 Public Sub Socket_Read()''Liest die Request vom Client
   
   Dim read_string As String
-  Dim sock As Socket
+  Dim connection As Socket
   
   Print "Incomming Request\n\n"
   read_string = ""
   read_string = Read #Last, Lof(Last)
   Print read_string
-  sock = Last
-  Request(read_string, sock)
+  connection = Last
+  Request(read_string, connection)
   
 End
 
