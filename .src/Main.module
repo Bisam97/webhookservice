@@ -3,17 +3,129 @@
 Private server As New ServerSocket As "server"
 Private port_number As Integer
 Private socket_list As New Socket[]
+Private $conf As String[]
 
 Public Sub Main() ''Main Code
   
+  Dim start_Server As Boolean
+  Dim get_New_ID As Boolean
+  
   Print "Hello world"
-  Print "Init Server...."
-  port_number = 8880
-  init_server()
+  Args.Begin(Application.Name & " [options]")
+  start_Server = Args.Has("s", "start", "Start Server")
+  get_New_ID = Args.Has("i", "newid", "get a new Request ID for a new Client")
+  Args.End()
+  
+  Print "load id_list"
+  load_idlist()
+  
+  ''Start of the Server
+  If start_Server Then
+    Print "Init Server...."
+    port_number = 8880
+    init_server()
+  Endif
+  
+  ''Get New ID 
+  If get_New_ID Then 
+    newid()
+  Endif
   
 End
 
-Public Sub init_server()''erstellen vom server
+Public Sub load_idlist()
+  
+  Dim split As String
+  Dim conf As File
+  
+  If Not Exist(User.Home &/ ".webhook") Then Mkdir User.Home &/ ".webhook"
+  If Exist(User.Home &/ ".webhook/client_id.conf") Then 
+    conf = Open User.home &/ ".webhook/client_id.conf" For Read 
+    split = Read #conf, Lof(conf)
+    Close #conf
+    $conf = Split(split, "\n", "", True)
+    $conf.Delete(0) ''this is the Template of the file
+  Else 
+    $conf = ["none|none|none"]
+  Endif
+  
+End
+
+Public Sub newid()
+  
+  Dim s As String
+  Dim id_array As New String[](3)''[Id,Name,description]
+  Dim conf As File
+  
+  Print "Gen New ID"
+  s = "Name of the new Client: "
+  Write #File.Out, s
+  Flush #File.Out
+  Line Input #File.in, id_array[1]
+  Print "description of the client:"
+  Line Input #File.in, id_array[2]
+  Print "Gen id"
+  genid(id_array)
+  If Exist(User.home &/ ".webhook/client_id.conf") Then
+    While Exist_ID(id_array[0]) ''wenn true dann neu gen
+      id_array[0] = ""
+      genid(id_array)
+    Wend
+  Endif
+  
+  Print id_array[0]
+  
+  If Not Exist(User.Home &/ ".webhook") Then Mkdir User.Home &/ ".webhook"
+  If Exist(User.home &/ ".webhook/client_id.conf") Then 
+    conf = Open User.home &/ ".webhook/client_id.conf" For Read Write 
+    Seek #conf, -1
+  Else 
+    conf = Open User.home &/ ".webhook/client_id.conf" For Read Write Create 
+    s = "#    ID     |   Name   |   description  |\n"
+    Write #conf, s
+  Endif
+  
+  s = id_array[0] & "|" & id_array[1] & "|" & id_array[2] & gb.NewLine & gb.NewLine
+  Write #conf, s
+  Close #conf
+  
+End 
+
+Public Sub Exist_ID(id As String) As Boolean
+  
+  Dim s As String
+  
+  For Each s In $conf
+    If id = Split(s, "|")[0] Then Return True
+    
+  Next
+  Return False
+  
+End
+
+Public Sub genid(id_array As String[])
+  
+  Dim i As Integer
+  Dim tmp As Integer
+  
+  i = 30
+  
+  While i > 0
+    i -= 1
+    tmp = Rand(1, 3)
+    Select tmp
+      Case 1
+        id_array[0] &= Chr(Rand(49, 57))
+      Case 2
+        id_array[0] &= Chr(Rand(65, 90))
+      Case 3
+        id_array[0] &= Chr(Rand(97, 122))
+    End Select
+  Wend
+  
+End
+
+Public Sub init_server()''create the server
   
   Try server.Close()
   
@@ -77,26 +189,35 @@ Public Sub webhook_test(requested_args As String[], connection As Socket)''Macht
   Dim keyword As String
   
   ''this is WIP
-  sender_id = requested_args[requested_args.Find("id=*", gb.Like)]
-  sender_id = Right(sender_id, sender_id.Len - 3)
-  keyword = requested_args[requested_args.Find("s=*", gb.Like)]
-  keyword = Right(keyword, keyword.Len - 2)
-  If sender_id = "0acidte" Then 
+  If requested_args.Find("id=*", gb.Like) >= 0 Then
+    sender_id = requested_args[requested_args.Find("id=*", gb.Like)]
+    
+    sender_id = Right(sender_id, sender_id.Len - 3)
+    If requested_args.Find("s=*", gb.Like) >= 0 Then
+      keyword = requested_args[requested_args.Find("s=*", gb.Like)]
+      keyword = Right(keyword, keyword.Len - 2)
+    Else 
+      keyword = ""
+    Endif 
+  Else 
+    sender_id = ""
+  Endif
+  If Exist_ID(sender_id) Then 
     Print "Von ID: " & sender_id & "\n mit dem Stichwort: " & keyword
-    Send_ACK(connection, 200)
+    Send_ACK(connection, 200, keyword)
   Else 
     Send_ACK(connection, 403)
   Endif
   
 End
 
-Public Sub Send_ACK(connection As Socket, success_code As Integer)''Sendet die Antwort an den Client zurück
+Public Sub Send_ACK(connection As Socket, success_code As Integer, Optional keyword As String)''Sendet die Antwort an den Client zurück
   
   Dim response As String
   
   Select success_code
     Case 200
-      response = "HTTP/1.1 200 OK\nContent-Type: text/plain\nConnection: close\nContent-Length: 3\n\n OK"
+      response = "HTTP/1.1 200 OK\nContent-Type: text/plain\nConnection: close\nContent-Length: 5\n\nOK " & keyword
       
     Case 403
       response = "HTTP/1.1 403 Forbidden\nContent-Type: text/plain\nConnection: close\nContent-Length: 24\n\nDie Anfrage ist verboten"
