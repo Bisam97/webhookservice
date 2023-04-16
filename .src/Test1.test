@@ -1,0 +1,60 @@
+' Gambas test file
+
+' ' Gambas test file
+' 
+' ' Gambas unit test file
+' 
+' ' Import the module to be tested
+' 
+' Private $conf As String[] 
+' 
+' ' Set up test fixtures, run before each test
+' Private Sub SetUp() 
+'   
+'   $conf = ["testid|testname|testdescription"] 
+'   
+' End 
+' 
+' ' Test Exist_ID() function
+' Exist_ID()
+' Assert Exist_ID("testid") = True 
+' Assert Exist_ID("invalidid") = False 
+' 
+' End 
+' 
+' ' Test genid() function
+' Test genid() 
+' Dim id_array As New String[](3) 
+' genid(id_array) 
+' Assert id_array[0].Length = 30 
+' Assert id_array[1] = "" 
+' Assert id_array[2] = "" 
+' 
+' End 
+' 
+' ' Test newid() function
+' Test newid() 
+' newid() 
+' Dim conf As File 
+' conf = Open User.home &/ ".webhook/client_id.conf" For Read 
+' Dim s As String 
+' s = Read #conf, Lof(conf) 
+' Close #conf 
+' Dim lines As String[] 
+' lines = Split(s, "\n", "", True) 
+' Assert lines[0] = "#    ID     |   Name   |   description  |" 
+' Assert lines[1].Contains("|testname|testdescription") 
+' Assert lines[2].Contains("|") 
+' 
+' End 
+' 
+' ' Tear down test fixtures, run after each test
+' Private Sub TearDown() 
+'   
+'   Dim conf As File 
+'   
+'   conf = Open User.home &/ ".webhook/client_id.conf" For Write 
+'   Write #conf, "#    ID     |   Name   |   description  |\n" 
+'   Close #conf 
+'   
+' End 

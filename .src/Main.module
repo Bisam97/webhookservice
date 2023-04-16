@@ -22,7 +22,7 @@ Public Sub Main() ''Main Code
   ''Start of the Server
   If start_Server Then
     Print "Init Server...."
-    port_number = 8880
+    port_number = 9090
     init_server()
   Endif
   
@@ -39,8 +39,8 @@ Public Sub load_idlist()
   Dim conf As File
   
   If Not Exist(User.Home &/ ".webhook") Then Mkdir User.Home &/ ".webhook"
-  If Exist(User.Home &/ ".webhook/client_id.conf") Then 
-    conf = Open User.home &/ ".webhook/client_id.conf" For Read 
+  If Exist("/usr/lib/webhook/client_id.conf") Then 
+    conf = Open "/usr/lib/webhook/client_id.conf" For Read 
     split = Read #conf, Lof(conf)
     Close #conf
     $conf = Split(split, "\n", "", True)
@@ -66,7 +66,7 @@ Public Sub newid()
   Line Input #File.in, id_array[2]
   Print "Gen id"
   genid(id_array)
-  If Exist(User.home &/ ".webhook/client_id.conf") Then
+  If Exist("/usr/lib/webhook/client_id.conf") Then
     While Exist_ID(id_array[0]) ''wenn true dann neu gen
       id_array[0] = ""
       genid(id_array)
@@ -76,11 +76,11 @@ Public Sub newid()
   Print id_array[0]
   
   If Not Exist(User.Home &/ ".webhook") Then Mkdir User.Home &/ ".webhook"
-  If Exist(User.home &/ ".webhook/client_id.conf") Then 
-    conf = Open User.home &/ ".webhook/client_id.conf" For Read Write 
+  If Exist("/usr/lib/webhook/client_id.conf") Then 
+    conf = Open "/usr/lib/webhook/client_id.conf" For Read Write 
     Seek #conf, -1
   Else 
-    conf = Open User.home &/ ".webhook/client_id.conf" For Read Write Create 
+    conf = Open "/usr/lib/webhook/client_id.conf" For Read Write Create 
     s = "#    ID     |   Name   |   description  |\n"
     Write #conf, s
   Endif
@@ -172,13 +172,35 @@ Public Sub Request(Request As String, connection As Socket)''Wertet die Request 
   If request_lines.Find("GET*", gb.Like) >= 0 Then 
     requested_path = Split(request_lines[request_lines.Find("GET*", gb.Like)], " ")
     Print requested_path
-    requested_args = Split(requested_path[1], "?")
+    requested_args = Split(requested_path[1], "?&")
     Select requested_args[0]
       Case "/test"
         webhook_test(requested_args, connection)
+      Case "/alarm"
+        webhook_einsatz(requested_args, connection)
+      Case "/response"
+        webhook_reponse(requested_args, connection)
       Case Else 
         Send_ACK(connection, 400)
     End Select
+  Endif
+  
+End
+
+Public Sub webhook_reponse(requested_args As String[], connection As Socket)
+  
+  Dim sender_id As String ''Wer hat gesendet
+  
+  If requested_args.Find("id=*", gb.Like) >= 0 Then
+    sender_id = requested_args[requested_args.Find("id=*", gb.Like)]
+    
+    sender_id = Right(sender_id, sender_id.Len - 3)
+  Else 
+    sender_id = ""
+  Endif
+  If Exist_ID(sender_id) Then 
+    Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.Rückmeldung?value=true"] Wait
+    Send_ACK(connection, 200)
   Endif
   
 End
@@ -211,18 +233,58 @@ Public Sub webhook_test(requested_args As String[], connection As Socket)''Macht
   
 End
 
+Public Sub webhook_einsatz(requested_args As String[], connection As Socket)''Macht den Webhook "Einsatz" abarbeiten 
+  
+  Dim sender_id As String ''Wer hat gesendet
+  Dim keyword As String
+  Dim kategorie As String
+  
+  ''this is WIP
+  If requested_args.Find("id=*", gb.Like) >= 0 Then
+    sender_id = requested_args[requested_args.Find("id=*", gb.Like)]
+    
+    sender_id = Right(sender_id, sender_id.Len - 3)
+    If requested_args.Find("s=*", gb.Like) >= 0 Then
+      keyword = requested_args[requested_args.Find("s=*", gb.Like)]
+      keyword = Right(keyword, keyword.Len - 2)
+    Else 
+      keyword = ""
+    Endif 
+    If requested_args.Find("k=*", gb.Like) >= 0 Then
+      kategorie = requested_args[requested_args.Find("k=*", gb.Like)]
+      kategorie = Right(kategorie, kategorie.Len - 2)
+    Else 
+      kategorie = ""
+    Endif 
+    If Exist_ID(sender_id) Then 
+      Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.stichwort?value=" & keyword] Wait
+      Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.kategorie?value=" & kategorie] Wait
+      Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.Alarm?value=true"] Wait
+    Endif
+  Else 
+    sender_id = ""
+  Endif
+  If Exist_ID(sender_id) Then 
+    Print "Von ID: " & sender_id & "\n mit dem Stichwort: " & keyword & "\n mit der kategorie: " & kategorie
+    Send_ACK(connection, 200, keyword)
+  Else 
+    Send_ACK(connection, 403)
+  Endif
+  
+End
+
 Public Sub Send_ACK(connection As Socket, success_code As Integer, Optional keyword As String)''Sendet die Antwort an den Client zurück
   
   Dim response As String
   
   Select success_code
     Case 200
-      response = "HTTP/1.1 200 OK\nContent-Type: text/plain\nConnection: close\nContent-Length: 5\n\nOK " & keyword
+      response = "HTTP/2 200 OK\nContent-Type: text/plain\nContent-Length: 2\n\nok"
       
     Case 403
-      response = "HTTP/1.1 403 Forbidden\nContent-Type: text/plain\nConnection: close\nContent-Length: 24\n\nDie Anfrage ist verboten"
+      response = "HTTP/2 403 Forbidden\nContent-Type: text/plain\nConnection: close\nContent-Length: 24\n\nDie Anfrage ist verboten"
     Default 
-      response = "HTTP/1.1 400 Bad Request\nContent-Type: text/plain\nConnection: close\nContent-Length: 38\n\nDie Anfrage enthaelt ungueltige Syntax."
+      response = "HTTP/2 400 Bad Request\nContent-Type: text/plain\nConnection: close\nContent-Length: 38\n\nDie Anfrage enthaelt ungueltige Syntax."
       
   End Select 
   Write #connection, response, response.Len
