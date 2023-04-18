@@ -9,12 +9,19 @@ Public Sub Main() ''Main Code
   
   Dim start_Server As Boolean
   Dim get_New_ID As Boolean
-  
+  Dim set_new_trigger As Boolean
+  AddTrigger.Add_Trigger()
   Print "Hello world"
   Args.Begin(Application.Name & " [options]")
   start_Server = Args.Has("s", "start", "Start Server")
   get_New_ID = Args.Has("i", "newid", "get a new Request ID for a new Client")
+  set_new_trigger = Args.Has("w", "new_webhook", "Add a new Webhook Dialog")
   Args.End()
+  
+  If set_new_trigger Then
+    Print "Add New Trigger..."
+    ' Add_Trigger()
+  Endif
   
   Print "load id_list"
   load_idlist()

@@ -1,0 +1,73 @@
+' Gambas class file
+
+Private $name As String
+Private $Action As String[]
+Private $checkID As Boolean
+Private $Version As Float ' TODO: Erhöhen der zahl je änderung der Klasse
+
+Property Name As String
+Property Action As String[]
+Property Read CheckID As Boolean
+Property Read Save As Boolean
+
+
+Private Sub saveToConf() As Boolean
+
+  Dim hSettings As Settings
+
+  hSettings = New Settings(User.home &/ ".webhook/" & $name & ".conf")
+  hSettings["Webhook/Name"] = $name
+  hSettings["Webhook/checkID"] = $checkID
+  hSettings["Webhook/Action"] = $Action.Join("|")
+  hSettings["Webhook/Version"] = CStr($Version)
+  hSettings.Save()
+  Return True
+  Catch 
+    Return False
+End
+Public Sub _new(Name As String, CheckID As Boolean, Optional Action As String[])
+
+  $name = name
+  $checkID = CheckID
+  $Action = Action
+
+
+  $Version = 0.1  ' TODO: Erhöhen der zahl je änderung der Klasse
+ 
+End
+
+Private Function Name_Read() As String
+
+  Return $name
+
+End
+
+Private Sub Name_Write(Value As String)
+
+  $name = Value
+
+End
+
+Private Function Action_Read() As String[]
+
+  Return $Action
+
+End
+
+Private Sub Action_Write(Value As String[])
+
+  $Action = Value
+
+End
+
+Private Function CheckID_Read() As Boolean
+
+  Return $checkID
+
+End
+
+Private Function Save_Read() As Boolean
+
+  Return saveToConf()
+
+End
