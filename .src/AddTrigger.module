@@ -11,7 +11,6 @@ Public Sub Add_Trigger()
   Print
   Print "Look for " & User.Home &/ ".webhook/"
   
-  
   For Each s In Dir(User.Home &/ ".webhook/")
     Print "Found" & s
   Next
@@ -30,17 +29,17 @@ Public Sub Add_Trigger()
       Print "WIP"
   End Select
   
-
 End
 
 Public Sub Add_Webhook()
-
+  
   Dim sinput As String
   Dim name As String
   Dim Action As New String[]
   Dim checkID As String
   Dim bcheckID As Boolean
   Dim w As Webhook
+  Dim Key As New String[]
   
   Print
   Print
@@ -48,7 +47,7 @@ Public Sub Add_Webhook()
   Write #File.out, "Webhook Name -> "
   Flush #File.out
   Line Input #File.in, name
-  Print
+  Print 
   Print
   Print "If you want to check the ID of the sender (1 for yes / 0 for no)"
   Write #File.out, "Check ID 1 or 0 -> "
@@ -56,7 +55,16 @@ Public Sub Add_Webhook()
   Line Input #File.in, checkID
   bcheckID = CBool(CInt(checkID))
   
-  
+  Print
+  Print "What Variablen du you want send with the Webhook? (Without the ID)?"
+  Print
+  sInput = "1"
+  While sInput
+    Write #File.out, "Key -> "
+    Flush #File.Out
+    Line Input #File.in, sinput
+    If sinput Then Key.Add(sinput)
+  Wend
   Print
   Print "what do the webhook after the Trigger is triggered? End with a Empty Line\nPlease insert a comand like 'Hello World'"
   sInput = "1"
@@ -75,9 +83,15 @@ Public Sub Add_Webhook()
     Print sInput
   Next
   Print "------END---Action----Script-------"
+  Print "-------------Keys----------------"
+  For Each sInput In key
+    Print sInput
+  Next
+  Print "----------END-------Keys-----------"
   
   Print "Save Webhook config...."
   
-  w = New Webhook(name, bcheckID, Action)
+  w = New Webhook(name, bcheckID, False, Action, Key)
   Print w.Save
+  
 End

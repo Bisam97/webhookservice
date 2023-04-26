@@ -4,13 +4,18 @@ Private server As New ServerSocket As "server"
 Private port_number As Integer
 Private socket_list As New Socket[]
 Private $conf As String[]
+Private webhooks As New Webhook[]
+Private $triggerList As String[]
 
 Public Sub Main() ''Main Code
   
   Dim start_Server As Boolean
   Dim get_New_ID As Boolean
   Dim set_new_trigger As Boolean
-  AddTrigger.Add_Trigger()
+  Dim wtest As Webhook
+  Dim s As String
+  Dim hook As Webhook
+  
   Print "Hello world"
   Args.Begin(Application.Name & " [options]")
   start_Server = Args.Has("s", "start", "Start Server")
@@ -20,7 +25,7 @@ Public Sub Main() ''Main Code
   
   If set_new_trigger Then
     Print "Add New Trigger..."
-    ' Add_Trigger()
+    AddTrigger.Add_Trigger()
   Endif
   
   Print "load id_list"
@@ -28,6 +33,16 @@ Public Sub Main() ''Main Code
   
   ''Start of the Server
   If start_Server Then
+    $triggerList = New String[]
+    Print "Load Webhooks....\n-------------------------"
+    
+    For Each s In Dir(User.Home &/ ".webhook/")
+      hook = New Webhook(s, False, True)
+      webhooks.Add(hook)
+      $triggerList.Add("/" & hook.Name)
+      Print "Loaded " & hook.Name
+    Next
+    Print "-------------------------\n Webhooks Ok..."
     Print "Init Server...."
     port_number = 9090
     init_server()
@@ -82,7 +97,7 @@ Public Sub newid()
   
   Print id_array[0]
   
-  If Not Exist(User.Home &/ ".webhook") Then Mkdir User.Home &/ ".webhook"
+  If Not Exist("/usr/lib/webhook") Then Mkdir "/usr/lib/webhook"
   If Exist("/usr/lib/webhook/client_id.conf") Then 
     conf = Open "/usr/lib/webhook/client_id.conf" For Read Write 
     Seek #conf, -1
@@ -98,9 +113,18 @@ Public Sub newid()
   
 End 
 
-Public Sub Exist_ID(id As String) As Boolean
+Public Sub Exist_ID(requested_args As String[]) As Boolean
   
   Dim s As String
+  Dim id As String
+  
+  If requested_args.Find("id=*", gb.Like) >= 0 Then
+    id = requested_args[requested_args.Find("id=*", gb.Like)]
+    
+    id = Right(id, id.Len - 3)
+  Else 
+    id = ""
+  Endif 
   
   For Each s In $conf
     If id = Split(s, "|")[0] Then Return True
@@ -174,22 +198,79 @@ Public Sub Request(Request As String, connection As Socket)''Wertet die Request 
   Dim request_lines As String[]
   Dim requested_path As String[]
   Dim requested_args As String[]
+  Dim i As Integer
   
   request_lines = Split(Request, gb.NewLine)
   If request_lines.Find("GET*", gb.Like) >= 0 Then 
     requested_path = Split(request_lines[request_lines.Find("GET*", gb.Like)], " ")
     Print requested_path
     requested_args = Split(requested_path[1], "?&")
-    Select requested_args[0]
-      Case "/test"
-        webhook_test(requested_args, connection)
-      Case "/alarm"
-        webhook_einsatz(requested_args, connection)
-      Case "/response"
-        webhook_reponse(requested_args, connection)
-      Case Else 
-        Send_ACK(connection, 400)
-    End Select
+    
+    i = $triggerList.Find(requested_args[0])
+    If i > -1 Then
+      webhook_Action($triggerList[i], webhooks[i], requested_args, connection)
+    Endif
+    ' Select requested_args[0]
+    '   Case "/test"
+    '     webhook_test(requested_args, connection)
+    '   Case "/alarm"
+    '     webhook_einsatz(requested_args, connection)
+    '   Case "/response"
+    '     webhook_reponse(requested_args, connection)
+    '   Case Else 
+    '     Send_ACK(connection, 400)
+    ' End Select
+  Endif
+  
+End
+
+Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As String[], connection As Socket)
+  
+  Dim ID As Boolean
+  Dim s As String
+  Dim sa As String[]
+  Dim Coll As New Collection
+  Dim key As String
+  Dim keyword As String
+  
+  If hook.CheckID Then 
+    ID = Exist_ID(requested_args)
+    
+  Else 
+    ID = True
+    Send_ACK(connection, 200)
+  Endif
+  
+  If ID Then 
+    Send_ACK(connection, 200)
+    For Each key In hook.keyWordList
+      If requested_args.Find(key & "=*", gb.Like) >= 0 Then
+        keyword = requested_args[requested_args.Find(key & "=*", gb.Like)]
+        Coll[key] = Right(keyword, keyword.Len - 1 - key.Len)
+      Else 
+        Coll[key] = ""
+      Endif 
+    Next
+    
+    For Each s In hook.Action
+      sa = Split(s, " ", "\"")
+      If sa.Find("%*", gb.Like) Then
+        s = sa[sa.Find("%*", gb.like)]
+        s = String.Right(s, -1)
+        For Each key In hook.keyWordList
+          If key == String.Left(s, key.Len) Then
+            s = String.Right(s, -key.Len)
+            s = Coll[key] & s
+            sa[sa.Find("%*", gb.like)] = s
+            Break 
+          Endif
+        Next
+      Endif
+      Exec sa Wait
+      
+    Next
+  Else 
+    Send_ACK(connection, 403)
   Endif
   
 End

@@ -1,6 +1,6 @@
 # Gambas Project File 3.0
 Startup=Main
-Version=0.0.20
+Version=0.0.49
 Component=gb.args
 Component=gb.settings
 Component=gb.net
