@@ -1,0 +1,97 @@
+' Gambas module file
+
+Public Sub Add_Trigger()
+  
+  Dim s As String
+  Dim sinput As String
+  
+  If Not Exist(User.Home &/ ".webhook/") Then Mkdir User.Home &/ ".webhook/"
+  Print "Welcome to the Add/Edit Webhook Dialog"
+  Print
+  Print
+  Print "Look for " & User.Home &/ ".webhook/"
+  
+  For Each s In Dir(User.Home &/ ".webhook/")
+    Print "Found" & s
+  Next
+  Print
+  Print "--------------------------------------"
+  Print "e to Edit Webhook \nn for New Webhook"
+  Write #File.Out, "?"
+  Flush #File.out
+  
+  Line Input #File.in, sinput 
+  Select sinput 
+    Case "n"
+      Print "Load Add Webhook"
+      Add_Webhook()
+    Case "e"
+      Print "WIP"
+  End Select
+  
+End
+
+Public Sub Add_Webhook()
+  
+  Dim sinput As String
+  Dim name As String
+  Dim Action As New String[]
+  Dim checkID As String
+  Dim bcheckID As Boolean
+  Dim w As Webhook
+  Dim Key As New String[]
+  
+  Print
+  Print
+  Print "Name of the webhook (the name ist also the name of the File in ~/.webhook/'name'.conf)"
+  Write #File.out, "Webhook Name -> "
+  Flush #File.out
+  Line Input #File.in, name
+  Print 
+  Print
+  Print "If you want to check the ID of the sender (1 for yes / 0 for no)"
+  Write #File.out, "Check ID 1 or 0 -> "
+  Flush #File.out
+  Line Input #File.in, checkID
+  bcheckID = CBool(CInt(checkID))
+  
+  Print
+  Print "What Variablen du you want send with the Webhook? (Without the ID)?"
+  Print
+  sInput = "1"
+  While sInput
+    Write #File.out, "Key -> "
+    Flush #File.Out
+    Line Input #File.in, sinput
+    If sinput Then Key.Add(sinput)
+  Wend
+  Print
+  Print "what do the webhook after the Trigger is triggered? End with a Empty Line\nPlease insert a comand like 'Hello World'"
+  sInput = "1"
+  While sInput
+    Write #File.out, "Action -> "
+    Flush #File.Out
+    Line Input #File.in, sinput
+    If sinput Then Action.Add(sinput)
+  Wend
+  Print
+  Print "Empty Line get\n\nyou insert This:"
+  Print "Name -> " & name
+  Print "CheckID -> " & checkID
+  Print "-------Action----Script------------"
+  For Each sInput In Action
+    Print sInput
+  Next
+  Print "------END---Action----Script-------"
+  Print "-------------Keys----------------"
+  For Each sInput In key
+    Print sInput
+  Next
+  Print "----------END-------Keys-----------"
+  
+  Print "Save Webhook config...."
+  
+  w = New Webhook(name, bcheckID, False, Action, Key)
+  Print w.Save
+  
+End
