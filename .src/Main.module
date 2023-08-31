@@ -6,8 +6,17 @@ Private socket_list As New Socket[]
 Private $conf As String[]
 Private webhooks As New Webhook[]
 Private $triggerList As String[]
+Private $log As Logger
+
+Public Sub Print(msg As String, Optional Level As Integer = 3)
+
+  $log.Log(msg, Level)
+
+End
+
 
 Public Sub Main() ''Main Code
+
   
   Dim start_Server As Boolean
   Dim get_New_ID As Boolean
@@ -16,7 +25,22 @@ Public Sub Main() ''Main Code
   Dim s As String
   Dim hook As Webhook
   
-  Print "Hello world"
+  If Not Exist("/var/log/webhook") Then
+  Try Mkdir "/var/log/webhook" 
+  If Error Then 
+    Print Error.Code
+    Print Error.Text
+    Print Error.Where
+    Quit Error.code
+    Else 
+    Chgrp "/var/log/webhook" To "webhooklog"
+    Chmod "/var/log/webhook" To "rwsrws---"
+  Endif
+  Endif
+  $log = New Logger(0, "$(time): $(message)", "/var/log/webhook/" & Day(Now) & Month(Now) & Year(Now) & ".log")
+  $log.Begin()
+  
+  Print("Hello world")
   Args.Begin(Application.Name & " [options]")
   start_Server = Args.Has("s", "start", "Start Server")
   get_New_ID = Args.Has("i", "newid", "get a new Request ID for a new Client")
@@ -24,26 +48,26 @@ Public Sub Main() ''Main Code
   Args.End()
   
   If set_new_trigger Then
-    Print "Add New Trigger..."
+    Print("Add New Trigger...")
     AddTrigger.Add_Trigger()
   Endif
   
-  Print "load id_list"
+  Print ("load id_list")
   load_idlist()
   
   ''Start of the Server
   If start_Server Then
     $triggerList = New String[]
-    Print "Load Webhooks....\n-------------------------"
+    Print ("Load Webhooks....\n-------------------------")
     
     For Each s In Dir(User.Home &/ ".webhook/")
       hook = New Webhook(s, False, True)
       webhooks.Add(hook)
       $triggerList.Add("/" & hook.Name)
-      Print "Loaded " & hook.Name
+      Print ("Loaded " & hook.Name)
     Next
-    Print "-------------------------\n Webhooks Ok..."
-    Print "Init Server...."
+    Print ("-------------------------\n Webhooks Ok...")
+    Print ("Init Server....")
     port_number = 9090
     init_server()
   Endif
@@ -79,14 +103,14 @@ Public Sub newid()
   Dim id_array As New String[](3)''[Id,Name,description]
   Dim conf As File
   
-  Print "Gen New ID"
+  Print ("Gen New ID")
   s = "Name of the new Client: "
   Write #File.Out, s
   Flush #File.Out
   Line Input #File.in, id_array[1]
   Print "description of the client:"
   Line Input #File.in, id_array[2]
-  Print "Gen id"
+  Print ("Gen id")
   genid(id_array)
   If Exist("/usr/lib/webhook/client_id.conf") Then
     While Exist_ID(id_array[0]) ''wenn true dann neu gen
@@ -160,21 +184,21 @@ Public Sub init_server()''create the server
   
   Try server.Close()
   
-  Print "Set Port to: " & port_number & " ..."
+  Print ("Set Port to: " & port_number & " ...")
   server.Port = port_number
   server.Type = Net.Internet
   server.Listen(1)
   While Server.Status Not Net.Active
     Wait 0.1
-    Print "Starting..."
+    Print ("Starting...")
   Wend
-  Print "Server Started and Listen"
+  Print ("Server Started and Listen")
   
 End 
 
 Public Sub server_Connection(RemoteHostIP As String)''Aufruf bei Verbindung
   
-  Print RemoteHostIP & " Conneted..."
+  Print (RemoteHostIP & " Conneted...")
   socket_list.Add(Server.Accept())
   
 End
@@ -184,10 +208,10 @@ Public Sub Socket_Read()''Liest die Request vom Client
   Dim read_string As String
   Dim connection As Socket
   
-  Print "Incomming Request\n\n"
+  Print ("Incomming Request\n\n")
   read_string = ""
   read_string = Read #Last, Lof(Last)
-  Print read_string
+  Print (read_string)
   connection = Last
   Request(read_string, connection)
   
@@ -203,7 +227,7 @@ Public Sub Request(Request As String, connection As Socket)''Wertet die Request 
   request_lines = Split(Request, gb.NewLine)
   If request_lines.Find("GET*", gb.Like) >= 0 Then 
     requested_path = Split(request_lines[request_lines.Find("GET*", gb.Like)], " ")
-    Print requested_path
+    Print (requested_path)
     requested_args = Split(requested_path[1], "?&")
     
     i = $triggerList.Find(requested_args[0])
@@ -275,91 +299,91 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
   
 End
 
-Public Sub webhook_reponse(requested_args As String[], connection As Socket)
-  
-  Dim sender_id As String ''Wer hat gesendet
-  
-  If requested_args.Find("id=*", gb.Like) >= 0 Then
-    sender_id = requested_args[requested_args.Find("id=*", gb.Like)]
-    
-    sender_id = Right(sender_id, sender_id.Len - 3)
-  Else 
-    sender_id = ""
-  Endif
-  If Exist_ID(sender_id) Then 
-    Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.Rückmeldung?value=true"] Wait
-    Send_ACK(connection, 200)
-  Endif
-  
-End
+' Public Sub webhook_reponse(requested_args As String[], connection As Socket)
+'   
+'   Dim sender_id As String ''Wer hat gesendet
+'   
+'   If requested_args.Find("id=*", gb.Like) >= 0 Then
+'     sender_id = requested_args[requested_args.Find("id=*", gb.Like)]
+'     
+'     sender_id = Right(sender_id, sender_id.Len - 3)
+'   Else 
+'     sender_id = ""
+'   Endif
+'   If Exist_ID(sender_id) Then 
+'     Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.Rückmeldung?value=true"] Wait
+'     Send_ACK(connection, 200)
+'   Endif
+'   
+' End
 
-Public Sub webhook_test(requested_args As String[], connection As Socket)''Macht den Webhook "test" abarbeiten 
-  
-  Dim sender_id As String ''Wer hat gesendet
-  Dim keyword As String
-  
-  ''this is WIP
-  If requested_args.Find("id=*", gb.Like) >= 0 Then
-    sender_id = requested_args[requested_args.Find("id=*", gb.Like)]
-    
-    sender_id = Right(sender_id, sender_id.Len - 3)
-    If requested_args.Find("s=*", gb.Like) >= 0 Then
-      keyword = requested_args[requested_args.Find("s=*", gb.Like)]
-      keyword = Right(keyword, keyword.Len - 2)
-    Else 
-      keyword = ""
-    Endif 
-  Else 
-    sender_id = ""
-  Endif
-  If Exist_ID(sender_id) Then 
-    Print "Von ID: " & sender_id & "\n mit dem Stichwort: " & keyword
-    Send_ACK(connection, 200, keyword)
-  Else 
-    Send_ACK(connection, 403)
-  Endif
-  
-End
+' Public Sub webhook_test(requested_args As String[], connection As Socket)''Macht den Webhook "test" abarbeiten 
+'   
+'   Dim sender_id As String ''Wer hat gesendet
+'   Dim keyword As String
+'   
+'   ''this is WIP
+'   If requested_args.Find("id=*", gb.Like) >= 0 Then
+'     sender_id = requested_args[requested_args.Find("id=*", gb.Like)]
+'     
+'     sender_id = Right(sender_id, sender_id.Len - 3)
+'     If requested_args.Find("s=*", gb.Like) >= 0 Then
+'       keyword = requested_args[requested_args.Find("s=*", gb.Like)]
+'       keyword = Right(keyword, keyword.Len - 2)
+'     Else 
+'       keyword = ""
+'     Endif 
+'   Else 
+'     sender_id = ""
+'   Endif
+'   If Exist_ID(sender_id) Then 
+'     Print ("Von ID: " & sender_id & "\n mit dem Stichwort: " & keyword)
+'     Send_ACK(connection, 200, keyword)
+'   Else 
+'     Send_ACK(connection, 403)
+'   Endif
+'   
+' End
 
-Public Sub webhook_einsatz(requested_args As String[], connection As Socket)''Macht den Webhook "Einsatz" abarbeiten 
-  
-  Dim sender_id As String ''Wer hat gesendet
-  Dim keyword As String
-  Dim kategorie As String
-  
-  ''this is WIP
-  If requested_args.Find("id=*", gb.Like) >= 0 Then
-    sender_id = requested_args[requested_args.Find("id=*", gb.Like)]
-    
-    sender_id = Right(sender_id, sender_id.Len - 3)
-    If requested_args.Find("s=*", gb.Like) >= 0 Then
-      keyword = requested_args[requested_args.Find("s=*", gb.Like)]
-      keyword = Right(keyword, keyword.Len - 2)
-    Else 
-      keyword = ""
-    Endif 
-    If requested_args.Find("k=*", gb.Like) >= 0 Then
-      kategorie = requested_args[requested_args.Find("k=*", gb.Like)]
-      kategorie = Right(kategorie, kategorie.Len - 2)
-    Else 
-      kategorie = ""
-    Endif 
-    If Exist_ID(sender_id) Then 
-      Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.stichwort?value=" & keyword] Wait
-      Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.kategorie?value=" & kategorie] Wait
-      Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.Alarm?value=true"] Wait
-    Endif
-  Else 
-    sender_id = ""
-  Endif
-  If Exist_ID(sender_id) Then 
-    Print "Von ID: " & sender_id & "\n mit dem Stichwort: " & keyword & "\n mit der kategorie: " & kategorie
-    Send_ACK(connection, 200, keyword)
-  Else 
-    Send_ACK(connection, 403)
-  Endif
-  
-End
+' Public Sub webhook_einsatz(requested_args As String[], connection As Socket)''Macht den Webhook "Einsatz" abarbeiten 
+'   
+'   Dim sender_id As String ''Wer hat gesendet
+'   Dim keyword As String
+'   Dim kategorie As String
+'   
+'   ''this is WIP
+'   If requested_args.Find("id=*", gb.Like) >= 0 Then
+'     sender_id = requested_args[requested_args.Find("id=*", gb.Like)]
+'     
+'     sender_id = Right(sender_id, sender_id.Len - 3)
+'     If requested_args.Find("s=*", gb.Like) >= 0 Then
+'       keyword = requested_args[requested_args.Find("s=*", gb.Like)]
+'       keyword = Right(keyword, keyword.Len - 2)
+'     Else 
+'       keyword = ""
+'     Endif 
+'     If requested_args.Find("k=*", gb.Like) >= 0 Then
+'       kategorie = requested_args[requested_args.Find("k=*", gb.Like)]
+'       kategorie = Right(kategorie, kategorie.Len - 2)
+'     Else 
+'       kategorie = ""
+'     Endif 
+'     If Exist_ID(sender_id) Then 
+'       Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.stichwort?value=" & keyword] Wait
+'       Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.kategorie?value=" & kategorie] Wait
+'       Exec ["curl", "http://ubuntu:8087/set/0_userdata.0.firesoftware.Alarm?value=true"] Wait
+'     Endif
+'   Else 
+'     sender_id = ""
+'   Endif
+'   If Exist_ID(sender_id) Then 
+'     Print ("Von ID: " & sender_id & "\n mit dem Stichwort: " & keyword & "\n mit der kategorie: " & kategorie)
+'     Send_ACK(connection, 200, keyword)
+'   Else 
+'     Send_ACK(connection, 403)
+'   Endif
+'   
+' End
 
 Public Sub Send_ACK(connection As Socket, success_code As Integer, Optional keyword As String)''Sendet die Antwort an den Client zurück
   
