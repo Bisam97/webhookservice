@@ -263,6 +263,11 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
   Dim Coll As New Collection
   Dim key As String
   Dim keyword As String
+  Dim indexa As Integer
+  Dim indexb As Integer
+  Dim sb As String
+  Dim sc As String
+  Dim sd As String
   
   If hook.CheckID Then 
     ID = Exist_ID(requested_args)
@@ -286,14 +291,21 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
     
     For Each s In hook.Action
       sa = Split(s, " ", "\"")
-      If sa.Find("%*", gb.Like) > -1 Then
-        s = sa[sa.Find("%*", gb.like)]
-        s = String.Right(s, -1)
+      If sa.Find("*%*%*", gb.Like) > -1 Then
+        s = sa[sa.Find("*%*%*", gb.like)]
+        indexa = String.InStr(s, "%")
+        indexb = String.InStr(s, "%", indexa + 1)
+        sb = String.Left(s, indexa - 1)
+        sc = String.Right(s, -indexb)
+        sd = String.Mid(s, indexa + 1, indexb - indexa - 1)
+        
         For Each key In hook.keyWordList
-          If key == String.Left(s, key.Len) Then
-            s = String.Right(s, -key.Len)
-            s = Coll[key] & s
-            sa[sa.Find("%*", gb.like)] = s
+          If key == String.Left(sd, key.Len) Then
+            
+            sd = Coll[key]
+            s = sb & sd & sc
+            Print(s)
+            sa[sa.Find("*%*%*", gb.like)] = s
             Break 
           Endif
         Next
