@@ -173,7 +173,7 @@ Public Sub Request(Request As String, connection As Socket)''Wertet die Request 
     requested_path = Split(request_lines[request_lines.Find("GET*", gb.Like)], " ")
     Print requested_path
     requested_args = Split(requested_path[1], "?&")
-    Select requested_args[0]
+    Select requested_args[0] ''deprecated
       Case "/test"
         webhook_test(requested_args, connection)
       Case "/alarm"
@@ -206,7 +206,7 @@ Public Sub webhook_reponse(requested_args As String[], connection As Socket)
 End
 
 Public Sub webhook_test(requested_args As String[], connection As Socket)''Macht den Webhook "test" abarbeiten 
-  
+  ''deprecated
   Dim sender_id As String ''Wer hat gesendet
   Dim keyword As String
   
@@ -234,7 +234,7 @@ Public Sub webhook_test(requested_args As String[], connection As Socket)''Macht
 End
 
 Public Sub webhook_einsatz(requested_args As String[], connection As Socket)''Macht den Webhook "Einsatz" abarbeiten 
-  
+  ''deprecated
   Dim sender_id As String ''Wer hat gesendet
   Dim keyword As String
   Dim kategorie As String
