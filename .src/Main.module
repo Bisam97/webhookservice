@@ -231,13 +231,16 @@ Public Sub Request(Request As String, connection As Socket)''Wertet die Request 
     requested_path = Split(request_lines[request_lines.Find("GET*", gb.Like)], " ")
     Print requested_path
     requested_args = Split(requested_path[1], "?&")
+
     
     i = $triggerList.Find(requested_args[0])
     If i > -1 Then
       webhook_Action($triggerList[i], webhooks[i], requested_args, connection)
       Else 
+
         Send_ACK(connection, 400)
     Endif
+    
     ' Select requested_args[0]
     '   Case "/test"
     '     webhook_test(requested_args, connection)
@@ -279,6 +282,7 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
         Coll[key] = ""
       Endif 
     Next
+
     
     For Each s In hook.Action
       sa = Split(s, " ", "\"")
