@@ -282,7 +282,7 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
     
     For Each s In hook.Action
       sa = Split(s, " ", "\"")
-      If sa.Find("%*", gb.Like) Then
+      If sa.Find("%*", gb.Like) > -1 Then
         s = sa[sa.Find("%*", gb.like)]
         s = String.Right(s, -1)
         For Each key In hook.keyWordList
@@ -300,7 +300,10 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
   Else 
     Send_ACK(connection, 403)
   Endif
-  
+  Catch 
+    Print(Error.Code)
+    Print(Error.Text)
+    Print(Error.Where)
 End
 
 ' Public Sub webhook_reponse(requested_args As String[], connection As Socket)
