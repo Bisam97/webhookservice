@@ -1,18 +1,19 @@
 ' Gambas class file
 
-Public Const Version As Float = 0.2 ' TODO: Erhöhen der zahl je änderung der Klasse
+Public Const Version As Float = 0.3 ' TODO: Erhöhen der zahl je änderung der Klasse
 
 Private $name As String
 Private $Action As String[]
 Private $checkID As Boolean
 Private $Version As Float ' TODO: Erhöhen der zahl je änderung der Klasse
 Private $keywordList As String[]
+Private $Active As Boolean
 
 Property Name As String
 Property Action As String[]
 Property Read CheckID As Boolean
-Property Read Save As Boolean
 Property Read keyWordList As String[]
+Property Read Active As Boolean
 
 Private Sub loadconf(Path As String)
   
@@ -26,6 +27,7 @@ Private Sub loadconf(Path As String)
   $checkID = hSettings["Webhook/checkID"]
   $Action = Split(hSettings["Webhook/Action"], "|")
   $keywordList = Split(hSettings["Webhook/KeyWordList"], "|")
+  $Active = hSettings["Webhook/Enable", 0]
   If $Version < Webhook.Version Then updateConf()
   
 End
@@ -39,9 +41,14 @@ Private Sub updateConf()
   Select $Version ''Check Version
       
     Case 0 To 0.1
-      Print "Update " & $name & " to V 0.2"
+      Main.Print("Update " & $name & " to V 0.2")
       $keywordList = ["test"]
       $Version = 0.2
+      saveToConf()
+    Case 0 To 0.2
+      Main.Print("Update " & $name & " to V 0.3")
+      $Version = 0.3
+      $Active = True
       saveToConf()
     Case Else 
       Print "No Update " & Me.Name & " Version Up to date"
@@ -49,7 +56,7 @@ Private Sub updateConf()
   
 End
 
-Private Sub saveToConf() As Boolean
+Public Sub saveToConf() As Boolean
   
   Dim hSettings As Settings
   
@@ -59,6 +66,7 @@ Private Sub saveToConf() As Boolean
   hSettings["Webhook/Action"] = $Action.Join("|")
   hSettings["Webhook/Version"] = CStr($Version)
   hSettings["Webhook/KeyWordList"] = $keywordList.Join("|")
+  hSettings["Webhook/Enable"] = $Active
   hSettings.Save()
   Return True
 Catch 
@@ -77,6 +85,7 @@ Public Sub _new(Name As String, CheckID As Boolean, Optional nameIsPath As Boole
     $checkID = CheckID
     $Action = Action
     $keywordList = Key
+    $Active = True
     
     $Version = Version  
     
@@ -114,14 +123,20 @@ Private Function CheckID_Read() As Boolean
   
 End
 
-Private Function Save_Read() As Boolean
-  
-  Return saveToConf()
-  
-End
-
 Private Function keyWordList_Read() As String[]
   
   Return $keywordList
+  
+End
+
+Private Function Active_Read() As Boolean
+  
+  Return $Active
+  
+End
+
+Public Function Toggle()
+  
+  $Active = Not $Active
   
 End

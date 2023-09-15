@@ -12,7 +12,7 @@ Private $conFilter As String '' like Filter String
 Private $conPort As Integer ''Port of the server
 
 Private Sub loadConst()
-
+  
   Dim Conf As New Settings
   
   $conFilter = Conf["General/Filer", "*%*%*"]
@@ -20,20 +20,44 @@ Private Sub loadConst()
   If $conPort = 9090 Then 
     Print("If you want to change the Port edit the Settings File: " & Conf.Path & "")
   Endif
-
+  
 End
-
 
 Public Sub Print(msg As String, Optional Level As Integer = 3)
-
+  
   $log.Log(msg, Level)
   Print msg
-
+  
 End
 
+Public Sub loadWebhooks(all As Boolean)
+  
+  $triggerList = New String[]
+  Print("Load Webhooks....")
+  Print("---------Active-------------")
+  Dim s As String
+  Dim hook As Webhook
+  
+  For Each s In Dir(User.Home &/ ".webhook/")
+    
+    hook = New Webhook(s, False, True)
+    If hook.Active Or all Then
+      
+      webhooks.Add(hook)
+      $triggerList.Add("/" & hook.Name)
+      If hook.Active Then
+        Print("[Enable] Loaded " & hook.Name)
+      Else 
+        Print("[Disable] Loaded " & hook.Name)
+      Endif
+    Endif
+  Next
+  Print("-----------------------------")
+  Print("Webhooks Ok...")
+  
+End
 
 Public Sub Main() ''Main Code
-
   
   Dim start_Server As Boolean
   Dim get_New_ID As Boolean
@@ -41,18 +65,19 @@ Public Sub Main() ''Main Code
   Dim wtest As Webhook
   Dim s As String
   Dim hook As Webhook
+  Dim toggle_webhook As Boolean
   
   If Not Exist("/var/log/webhook") Then
-  Try Mkdir "/var/log/webhook" 
-  If Error Then 
-    Print Error.Code
-    Print Error.Text
-    Print Error.Where
-    Quit Error.code
+    Try Mkdir "/var/log/webhook" 
+    If Error Then 
+      Print Error.Code
+      Print Error.Text
+      Print Error.Where
+      Quit Error.code
     Else 
-    Chgrp "/var/log/webhook" To "webhooklog"
-    Chmod "/var/log/webhook" To "rwsrws---"
-  Endif
+      Chgrp "/var/log/webhook" To "webhooklog"
+      Chmod "/var/log/webhook" To "rwsrws---"
+    Endif
   Endif
   
   $log = New Logger(4, "$(time): $(message)", "/var/log/webhook/" & Day(Now) & Month(Now) & Year(Now) & ".log")
@@ -63,6 +88,7 @@ Public Sub Main() ''Main Code
   start_Server = Args.Has("s", "start", "Start Server")
   get_New_ID = Args.Has("i", "newid", "get a new Request ID for a new Client")
   set_new_trigger = Args.Has("w", "new_webhook", "Add a new Webhook Dialog")
+  toggle_webhook = Args.has("t", "toggle", "Toggle a webhook Enable/Disable")
   
   Args.End()
   
@@ -71,25 +97,18 @@ Public Sub Main() ''Main Code
     AddTrigger.Add_Trigger()
   Endif
   
-  Print("load id_list")
-  load_idlist()
+  If toggle_webhook Then 
+    loadWebhooks(True)
+    ToggleWebhook.ToggleWebhook(webhooks)
+  Endif
   
   ''Start of the Server
   If start_Server Then
+    Print("load id_list")
+    load_idlist()
     loadConst()
     Print("Load Config....")
-    $triggerList = New String[]
-    Print("Load Webhooks....")
-    Print("---------Active-------------")
-    
-    For Each s In Dir(User.Home &/ ".webhook/")
-      hook = New Webhook(s, False, True)
-      webhooks.Add(hook)
-      $triggerList.Add("/" & hook.Name)
-      Print("Loaded " & hook.Name)
-    Next
-    Print("-----------------------------")
-    Print("Webhooks Ok...")
+    loadWebhooks(False)
     Print("Init Server....")
     port_number = $conPort
     init_server()
@@ -97,6 +116,8 @@ Public Sub Main() ''Main Code
   
   ''Get New ID 
   If get_New_ID Then 
+    Print("load id_list")
+    load_idlist()
     newid()
   Endif
   
@@ -252,14 +273,13 @@ Public Sub Request(Request As String, connection As Socket)''Wertet die Request 
     requested_path = Split(request_lines[request_lines.Find("GET*", gb.Like)], " ")
     Print requested_path
     requested_args = Split(requested_path[1], "?&")
-
     
     i = $triggerList.Find(requested_args[0])
     If i > -1 Then
       webhook_Action($triggerList[i], webhooks[i], requested_args, connection)
-      Else 
-
-        Send_ACK(connection, 400)
+    Else 
+      
+      Send_ACK(connection, 400)
     Endif
     
     ' Select requested_args[0]
@@ -308,7 +328,6 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
         Coll[key] = ""
       Endif 
     Next
-
     
     For Each s In hook.Action
       sa = Split(s, " ", "\"")
@@ -337,12 +356,12 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
   Else 
     Send_ACK(connection, 403)
   Endif
-  Catch 
-    Print(Error.Code)
-    Print(Error.Text)
-    Print(Error.Where)
+Catch 
+  Print(Error.Code)
+  Print(Error.Text)
+  Print(Error.Where)
+  
 End
-
 
 Public Sub Send_ACK(connection As Socket, success_code As Integer, Optional keyword As String)''Sendet die Antwort an den Client zurück
   

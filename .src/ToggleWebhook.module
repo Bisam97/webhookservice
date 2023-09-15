@@ -1,0 +1,39 @@
+' Gambas module file
+
+Public Sub ToggleWebhook(Webhooklist As Webhook[])
+  
+  Dim hook As Webhook
+  Dim i As Integer
+  Dim in As String
+  
+  While True
+    Print "Welcome to the Enable/Disable Webhook Dialog"
+    Print "----Hook-Name-------------Enable----------"
+    i = 0
+    For Each hook In Webhooklist
+      i = i + 1
+      Print "[" & i & "] " & hook.Name & gb.Tab & gb.Tab & "[" & CStr(hook.Active) & "]"
+    Next
+    Print "[0] Exit"
+    Print "------------------------------------------"
+    
+    Write #File.out, "Webhook number -> "
+    Flush #File.out
+    Line Input #File.in, in
+    i = CInt(in)
+    
+    If i <= 0 Then Break 
+    If i > Webhooklist.Count Then Break
+    hook = Webhooklist[i - 1]
+    With hook
+      .Toggle
+      Print "Toggle " & .Name & " --> " & .Active
+      Print
+      Print
+    End With
+  Wend 
+  For Each hook In Webhooklist
+    hook.saveToConf
+  Next
+  
+End
