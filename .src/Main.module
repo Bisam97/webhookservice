@@ -22,10 +22,10 @@ Private Sub loadConst()
   Endif
   If Not Exist(conf.Path) Then
     Conf["General/Filer"] = $conFilter
-    Conf["General/Port"] = $conPort
+    Conf["Connection/Port"] = $conPort
     conf.Save
   Endif
-
+  
 End
 
 Public Sub Print(msg As String, Optional Level As Integer = 3)
