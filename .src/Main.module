@@ -20,7 +20,12 @@ Private Sub loadConst()
   If $conPort = 9090 Then 
     Print("If you want to change the Port edit the Settings File: " & Conf.Path & "")
   Endif
-  
+  If Not Exist(conf.Path) Then
+    Conf["General/Filer"] = $conFilter
+    Conf["General/Port"] = $conPort
+    conf.Save
+  Endif
+
 End
 
 Public Sub Print(msg As String, Optional Level As Integer = 3)
