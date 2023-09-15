@@ -8,6 +8,22 @@ Private webhooks As New Webhook[]
 Private $triggerList As String[]
 Private $log As Logger
 
+Private $conFilter As String '' like Filter String
+Private $conPort As Integer ''Port of the server
+
+Private Sub loadConst()
+
+  Dim Conf As New Settings
+  
+  $conFilter = Conf["General/Filer", "*%*%*"]
+  $conPort = Conf["Connection/Port", 9090]
+  If $conPort = 9090 Then 
+    Print("If you want to change the Port edit the Settings File: " & Conf.Path & "")
+  Endif
+
+End
+
+
 Public Sub Print(msg As String, Optional Level As Integer = 3)
 
   $log.Log(msg, Level)
@@ -47,6 +63,7 @@ Public Sub Main() ''Main Code
   start_Server = Args.Has("s", "start", "Start Server")
   get_New_ID = Args.Has("i", "newid", "get a new Request ID for a new Client")
   set_new_trigger = Args.Has("w", "new_webhook", "Add a new Webhook Dialog")
+  
   Args.End()
   
   If set_new_trigger Then
@@ -59,8 +76,11 @@ Public Sub Main() ''Main Code
   
   ''Start of the Server
   If start_Server Then
+    loadConst()
+    Print("Load Config....")
     $triggerList = New String[]
-    Print("Load Webhooks....\n-------------------------")
+    Print("Load Webhooks....")
+    Print("---------Active-------------")
     
     For Each s In Dir(User.Home &/ ".webhook/")
       hook = New Webhook(s, False, True)
@@ -68,9 +88,10 @@ Public Sub Main() ''Main Code
       $triggerList.Add("/" & hook.Name)
       Print("Loaded " & hook.Name)
     Next
-    Print("-------------------------\n Webhooks Ok...")
+    Print("-----------------------------")
+    Print("Webhooks Ok...")
     Print("Init Server....")
-    port_number = 9090
+    port_number = $conPort
     init_server()
   Endif
   
@@ -291,8 +312,8 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
     
     For Each s In hook.Action
       sa = Split(s, " ", "\"")
-      If sa.Find("*%*%*", gb.Like) > -1 Then
-        s = sa[sa.Find("*%*%*", gb.like)]
+      If sa.Find("$conFilter", gb.Like) > -1 Then
+        s = sa[sa.Find("$conFilter", gb.like)]
         indexa = String.InStr(s, "%")
         indexb = String.InStr(s, "%", indexa + 1)
         sb = String.Left(s, indexa - 1)
@@ -305,7 +326,7 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
             sd = Coll[key]
             s = sb & sd & sc
             Print(s)
-            sa[sa.Find("*%*%*", gb.like)] = s
+            sa[sa.Find("$conFilter", gb.like)] = s
             Break 
           Endif
         Next
