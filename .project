@@ -1,6 +1,6 @@
 # Gambas Project File 3.0
 Startup=Main
-Version=0.2.1
+Version=0.2.2
 Component=gb.args
 Component=gb.settings
 Component=gb.logging
@@ -10,7 +10,7 @@ Language=en_US
 Maintainer=bisam97
 Address=bisam97@bisam97.de
 License=General Public License
-PackageName=webhookservice-0.2.0
+PackageName=webhookservice-0.2.1
 Packager=1
 Systems=ubuntu
 Menus=ubuntu:"Applications/Network/Communication"
