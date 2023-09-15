@@ -374,12 +374,12 @@ Public Sub Send_ACK(connection As Socket, success_code As Integer, Optional keyw
   
   Select success_code
     Case 200
-      response = "HTTP/2 200 OK\nContent-Type: text/plain\nContent-Length: 2\n\nok"
+      response = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 2\n\nok"
       
     Case 403
-      response = "HTTP/2 403 Forbidden\nContent-Type: text/plain\nConnection: close\nContent-Length: 24\n\nDie Anfrage ist verboten"
+      response = "HTTP/1.1 403 Forbidden\nContent-Type: text/plain\nConnection: close\nContent-Length: 24\n\nDie Anfrage ist verboten"
     Default 
-      response = "HTTP/2 400 Bad Request\nContent-Type: text/plain\nConnection: close\nContent-Length: 38\n\nDie Anfrage enthaelt ungueltige Syntax."
+      response = "HTTP/1.1 400 Bad Request\nContent-Type: text/plain\nConnection: close\nContent-Length: 38\n\nDie Anfrage enthaelt ungueltige Syntax."
       
   End Select 
   Write #connection, response, response.Len
