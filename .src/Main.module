@@ -336,8 +336,8 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
     
     For Each s In hook.Action
       sa = Split(s, " ", "\"")
-      If sa.Find("$conFilter", gb.Like) > -1 Then
-        s = sa[sa.Find("$conFilter", gb.like)]
+      If sa.Find($conFilter, gb.Like) > -1 Then
+        s = sa[sa.Find($conFilter, gb.like)]
         indexa = String.InStr(s, "%")
         indexb = String.InStr(s, "%", indexa + 1)
         sb = String.Left(s, indexa - 1)
@@ -350,7 +350,7 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
             sd = Coll[key]
             s = sb & sd & sc
             Print(s)
-            sa[sa.Find("$conFilter", gb.like)] = s
+            sa[sa.Find($conFilter, gb.like)] = s
             Break 
           Endif
         Next
