@@ -1,0 +1,104 @@
+' Gambas module file
+
+Public Sub Main()
+  
+  Dim n As String
+  
+  Print
+  Print
+  Print
+  Print "◂◀Setup▶▸"
+  Print "▶ PreConfiguration ◀"
+  Print "▷   Configuration  ◁"
+  Print "▷       Done       ◁"
+  
+  Print "Do you need https requestest?"
+  Write #File.out, "y/n "
+  Flush #File.out
+  Line Input #File.in, n
+  
+  If n = "y" Or n = "Y" Then
+    If Exist("/etc/nginx") Then
+      Print "Found Nginx"
+      Print "Do you want configure a Nginx as a reverse Proxy for https?"
+      Write #File.out, "y/n "
+      Flush #File.out
+      Line Input #File.in, n
+      
+      If n = "y" Or n = "Y" Then
+        Print "Ok"
+        Print "● PreConfiguration ●"
+        Print "▶   Configuration  ◀"
+        Print "▷       Done       ◁"
+        
+        If Not NginXConfigure() Then
+          Print "Error"
+          Quit 1
+        Endif
+        Print "● PreConfiguration ●"
+        Print "●   Configuration  ●"
+        Print "▶       Done       ◀"
+      Endif
+    Else 
+      Error.Raise("No Supported webengin found (try nginx)")
+    Endif
+  Endif
+  
+Catch 
+  Print Error.Code
+  Print Error.Text
+  Print Error.Where
+  Print Error.Backtrace.Join(" | ")
+  Quit 1
+
+End
+
+Public Sub NginXConfigure() As Boolean
+  
+  Dim n As String
+  Dim in As String
+  Dim z As String
+  Dim serverN As String
+  
+  If User.Name = "root" Then 
+    
+  Else 
+    Print "Error No root for change configuration"
+    Return False
+  Endif
+  While True
+    Print "With which Address is the server public? (webhook.example.com)"
+    Line Input #File.In, n
+    
+    Print "If '" & n & "' correct? (y/n)"
+    serverN = n
+    Line Input #File.in, n
+    If n = "y" Or n = "Y" Then Break
+  Wend 
+  
+  z = "server {\n\r"
+    "        server_name " & ServerN & ";\n\r"
+    "        access_log /var/log/nginx/webhook-access.log;\n\r"
+    "        error_log /var/log/nginx/webhook-error.log;\n\r"
+    "        location / {\n\r"
+    "                    proxy_pass http://127.0.0.1:9090;\n\r"
+    "                    proxy_set_header X-Real-IP         $remote_addr;\n\r"
+    "  }\n\r"
+    "\n\r"
+    "    listen 9091 ; # add ssl befor ;\n\r"
+    "}"
+  File.Save("/etc/nginx/sites-available/webhook.conf", z)
+  Print "Config writed to -> /etc/nginx/sites-available/webhook.conf"
+  Try Link "/etc/nginx/sites-available/webhook.conf" To "/etc/nginx/sites-enabled/webhook.conf" 
+  Try Kill "/etc/nginx/sites-enabled/default"
+  Print "Install and Run Certbot \nOn Debian: 'apt install certbot python3-certbot-nginx'\nPlease run Certbot to create a ssl certificate for " & n 
+  Print "Please remove the line 'listen 443 ssl; # managed by Certbot' and add 'ssl' to line  'listen 9091 ;' "
+  Return True
+Catch 
+  Print Error.Code
+  Print Error.Text
+  Print Error.Where
+  Print Error.Backtrace.Join(" | ")
+  Return False
+  
+End

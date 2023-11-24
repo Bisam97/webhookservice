@@ -71,6 +71,7 @@ Public Sub Main() ''Main Code
   Dim s As String
   Dim hook As Webhook
   Dim toggle_webhook As Boolean
+  Dim setup_programm As Boolean
   
   If Not Exist("/var/log/webhook") Then
     Try Mkdir "/var/log/webhook" 
@@ -95,17 +96,26 @@ Public Sub Main() ''Main Code
   get_New_ID = Args.Has("i", "newid", "get a new Request ID for a new Client")
   set_new_trigger = Args.Has("w", "new_webhook", "Add a new Webhook Dialog")
   toggle_webhook = Args.has("t", "toggle", "Toggle a webhook Enable/Disable")
+  setup_programm = Args.Has(Null, "setup", "Setup Dialog for the programm Server")
   
   Args.End()
+  
+  If setup_programm Then
+    Print "Setup Dialog"
+    Setup.Main()
+    Quit
+  Endif
   
   If set_new_trigger Then
     Print("Add New Trigger...")
     AddTrigger.Add_Trigger()
+    Quit
   Endif
   
   If toggle_webhook Then 
     loadWebhooks(True)
     ToggleWebhook.ToggleWebhook(webhooks)
+    Quit
   Endif
   
   ''Start of the Server
@@ -125,6 +135,7 @@ Public Sub Main() ''Main Code
     Print("load id_list")
     load_idlist()
     newid()
+    Quit 
   Endif
   
 End
