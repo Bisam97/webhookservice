@@ -88,7 +88,8 @@ Public Sub Main() ''Main Code
   
   $log = New Logger(4, "$(time): $(message)", "/var/log/webhook/" & Day(Now) & Month(Now) & Year(Now) & ".log")
   $log.Begin()
-  
+  Print("archive old log Files to /var/log/webhook/archive/" & Year(Now) &/ Month(Now))
+  ArciveLog()
   Print("Hello world")
   Args.Begin(Application.Name & " [options]")
   start_Server = Args.Has("s", "start", "Start Server")
@@ -136,6 +137,43 @@ Public Sub Main() ''Main Code
     newid()
     Quit 
   Endif
+  
+End
+
+Public Sub ArciveLog()
+  
+  Dim s As String
+  Dim sY As Integer
+  Dim sM As Integer
+  Dim tar As New String[]
+  
+  For Each s In Dir("/var/log/webhook/")
+    If s == "archive" Then 
+    Else
+      
+      If s = Day(Now) & Month(Now) & Year(Now) & ".log" Then
+      Else 
+        sM = Month(Stat("/var/log/webhook/" & s).LastModified)
+        SY = Year(Stat("/var/log/webhook/" & s).LastModified)
+        If Not Exist("/var/log/webhook/archive") Then Mkdir "/var/log/webhook/archive" 
+        If Not Exist("/var/log/webhook/archive" &/ sY) Then Mkdir "/var/log/webhook/archive" &/ sY
+        If Not Exist("/var/log/webhook/archive" &/ sY &/ sM) Then Mkdir "/var/log/webhook/archive" &/ sY &/ sM
+        Move "/var/log/webhook/" &/ s To "/var/log/webhook/archive" &/ sY &/ sM &/ s
+        Print("/var/log/webhook/" &/ s & " Move To  /var/log/webhook/archive" &/ sY &/ sM &/ s)
+        
+      Endif
+      If sM <> Month(Now) Or sY <> Year(Now) Then
+        If tar.Find("/var/log/webhook/archive" &/ sY &/ sM) < 0 Then tar.Add("/var/log/webhook/archive" &/ sY &/ sM)
+      Endif
+    Endif
+  Next
+  For Each s In tar
+    
+    Print("Make tar of Path " & s)
+    
+    Exec ["tar", "-czf", s & ".tar.gz", s] Wait
+    
+  Next
   
 End
 

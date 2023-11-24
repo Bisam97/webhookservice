@@ -1,6 +1,6 @@
 # Gambas Project File 3.0
 Startup=Main
-Version=0.2.20
+Version=0.2.2
 VersionFile=1
 Component=gb.args
 Component=gb.settings
