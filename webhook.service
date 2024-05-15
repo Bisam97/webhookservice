@@ -1,0 +1,11 @@
+[Unit]
+Description=Mein Webhookserver
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+ExecStart=webhookservice -s
+
+[Install]
+WantedBy=multi-user.target
