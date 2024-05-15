@@ -92,6 +92,6 @@ Public Sub Add_Webhook()
   Print "Save Webhook config...."
   
   w = New Webhook(name, bcheckID, False, Action, Key)
-  Print w.Save
+  Print w.saveToConf()
   
 End
