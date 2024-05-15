@@ -1,9 +1,13 @@
 ' Gambas module file
 
-Public Sub Add_Trigger()
+Private $webhooks As Webhook[]
+
+Public Sub Add_Trigger(webhooks As Webhook[])
   
   Dim s As String
   Dim sinput As String
+  
+  $webhooks = webhooks
   
   If Not Exist(User.Home &/ ".webhook/") Then Mkdir User.Home &/ ".webhook/"
   Print "Welcome to the Add/Edit Webhook Dialog"
@@ -27,7 +31,145 @@ Public Sub Add_Trigger()
       Add_Webhook()
     Case "e"
       Print "WIP"
+      Edit_Webhook()
   End Select
+  
+End
+
+Public Sub Edit_Webhook()
+  
+  Dim listofhooks As String
+  Dim name As String
+  Dim w As Webhook
+  Dim f As Boolean
+  
+  Shell "clear" Wait
+  Shell "tree " & User.Home &/ ".webhook" To listofhooks
+  
+  Print "--------------Edit---WEBHOOK--------------"
+  Print "Installed Webhooks:"
+  Print listofhooks
+  Print
+  Print
+  
+  Write #File.out, "edit Webhook (without .conf)-> "
+  Flush #File.out
+  Line Input #File.in, name
+  
+  For Each w In $webhooks
+    If w.Name = name Then
+      f = True
+      
+      Break
+    Endif  
+  Next
+  If f Then 
+    
+    Edit_Webhook_1(w)
+    
+  Else 
+    
+    Print "Not Found\n Exit..." 
+    
+  Endif
+  
+End
+
+Public Sub Edit_Webhook_1(w As Webhook)
+  
+  Dim key As String
+  Dim Action As String
+  Dim sInput As String
+  Dim newName As String
+  Dim i As Integer
+  
+  While True
+    Shell "clear" Wait 
+    Print "----------Edit---WEBHOOK-----------"
+    Print
+    Print "1. Webhook Name -> " & w.Name
+    Print "2. Check for valid Token -> [" & w.CheckID & "]   [T] = On | [] = Off"
+    Print 
+    Print "3. Keywords:"
+    Print "--------------Keys-----------------"
+    For Each key In w.keyWordList
+      Print key
+    Next
+    Print "----------END-------Keys-----------"
+    
+    Print 
+    Print "4. Action Script:"
+    Print "-------Action----Script------------"
+    i = 0
+    For Each Action In w.Action
+      Print i & " " & Action
+      i += 1
+    Next
+    Print "------END---Action----Script-------"
+    Print
+    Print "INFO:"
+    Print "Webhook Version: " & w.Version
+    Print "Webhook Aktiv: [" & w.Active & "]  [T] = On | [] = Off"
+    Print "To Toggle the Webhook to Aktiv use -t"
+    Print "--------------WEBHOOK--------------"
+    
+    Write #File.out, "Witch do you want edit? -> "
+    Flush #File.out
+    Line Input #File.in, sInput
+    Print
+    Select CInt(sInput)
+      Case 1
+        Write #File.out, "Rename to -> "
+        Flush #File.out
+        Line Input #File.in, newName
+        w.EDIT(1, newName)
+      Case 2
+        w.EDIT(2, CString(Not w.CheckID))
+      Case 3
+        Write #File.out, "Add or Remove Keyword (A/R)-> "
+        Flush #File.out
+        Line Input #File.in, sInput
+        
+        If sInput = "A" Then 
+          
+          Write #File.out, "Add New Keyword -> "
+          Flush #File.out
+          Line Input #File.in, sInput
+          
+          w.EDIT(3, sInput)
+          
+        Else If sInput = "R" Then 
+          Write #File.out, "Remove Keyword -> "
+          Flush #File.out
+          Line Input #File.in, sInput
+          w.EDIT(4, sInput)
+        Endif
+        
+      Case 4
+        Write #File.out, "Add or Remove Action (A/R)-> "
+        Flush #File.out
+        Line Input #File.in, sInput
+        
+        If sInput = "A" Then 
+          
+          Write #File.out, "Add New Action -> "
+          Flush #File.out
+          Line Input #File.in, sInput
+          
+          w.EDIT(5, sInput)
+          
+        Else If sInput = "R" Then 
+          Write #File.out, "Remove Action (No. of Line) -> "
+          Flush #File.out
+          Line Input #File.in, sInput
+          w.EDIT(6, sInput)
+        Endif
+      Case Else 
+        Print "Exit"
+        Break
+    End Select
+    
+  Wend
   
 End
 

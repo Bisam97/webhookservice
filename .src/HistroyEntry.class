@@ -1,0 +1,26 @@
+' Gambas class file 
+
+Private $description As String 
+Private qdate As Date 
+
+Property Read date As Date
+Property Read description As String
+
+Public Sub _new(description As String, sDate As Date) 
+  
+  $description = description 
+  qdate = sDate 
+  
+End 
+
+Private Function date_Read() As Date
+  
+  Return qdate
+  
+End
+
+Private Function description_Read() As String
+  
+  Return $description
+  
+End

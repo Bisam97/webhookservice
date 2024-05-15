@@ -72,7 +72,11 @@ Public Sub Main() ''Main Code
   Dim hook As Webhook
   Dim toggle_webhook As Boolean
   Dim setup_programm As Boolean
+  Dim install_To_systemd As Boolean
   
+  If Not Exist(User.Home & "/.webhook") Then
+    Try Mkdir User.Home & "/.webhook"
+  Endif
   If Not Exist("/var/log/webhook") Then
     Try Mkdir "/var/log/webhook" 
     If Error Then 
@@ -94,11 +98,16 @@ Public Sub Main() ''Main Code
   Args.Begin(Application.Name & " [options]")
   start_Server = Args.Has("s", "start", "Start Server")
   get_New_ID = Args.Has("i", "newid", "get a new Request ID for a new Client")
-  set_new_trigger = Args.Has("w", "new_webhook", "Add a new Webhook Dialog")
+  set_new_trigger = Args.Has("w", "webhook", "new/edit Webhook Dialog")
   toggle_webhook = Args.has("t", "toggle", "Toggle a webhook Enable/Disable")
   setup_programm = Args.Has(Null, "setup", "Setup Dialog for the programm Server")
+  install_To_systemd = Args.Has("i", "install", "Install Systemd Unit and Enable/Start")
   
   Args.End()
+  If install_To_systemd Then 
+    Shell "systemctl enable webhook" Wait
+    Shell "Systemctl start webhook" Wait
+  Endif
   
   If setup_programm Then
     Print "Setup Dialog"
@@ -107,8 +116,10 @@ Public Sub Main() ''Main Code
   Endif
   
   If set_new_trigger Then
-    Print("Add New Trigger...")
-    AddTrigger.Add_Trigger()
+    loadWebhooks(True)
+    Print("Add New/Edit Webhook...")
+    
+    AddTrigger.Add_Trigger(webhooks)
     Quit
   Endif
   
