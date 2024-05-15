@@ -1,0 +1,79 @@
+' Gambas class file
+
+Private entries As New Collection 
+
+' Methode zum Hinzufügen eines neuen History-Eintrags
+Public Sub AddEntry(description As String) 
+  
+  Dim entry As HistroyEntry
+  
+  entry = New HistroyEntry(description, Now)
+  
+  entries.Add(entry, entry.date & Str(entries.Count)) 
+  
+End 
+
+' Methode zum Abrufen aller History-Einträge
+Public Function GetEntries() As Collection 
+  
+  Return entries 
+  
+End 
+
+' Methode zum Abrufen der letzten N Einträge
+Public Function GetLastEntries(n As Integer) As Collection 
+  
+  Dim result As New Collection 
+  Dim keys As String[] = entries.Keys 
+  Dim i As Integer 
+  
+  For i = Max(0, entries.Count - n) To entries.Count - 1 
+    result.Add(entries[keys[i]], keys[i]) 
+  Next 
+  
+  Return result 
+  
+End 
+
+' Methode zum Speichern der History in einem String
+Public Function SaveToString() As String 
+  
+  Dim entry As HistroyEntry
+  Dim data As String = "" 
+  
+  For Each entry In entries 
+    data &= entry.description & ";" & CFloat(entry.date) & "\n"
+  Next 
+  
+  Return data 
+  
+End 
+
+' Methode zum Laden der History von einem String
+Public Sub LoadFromString(data As String) 
+  
+  Dim lines As String[] 
+  Dim s As String 
+  Dim parts As String[] 
+  Dim description As String 
+  Dim gDate As Date 
+  Dim entri As HistroyEntry
+  
+  entries.Clear 
+  
+  lines = Split(data, "\n") 
+  
+  For Each s In lines 
+    If Len(Trim(s)) > 0 Then 
+      parts = Split(s, ";") 
+      If parts.Count = 2 Then 
+        description = parts[0] 
+        System.Language = "C"
+        gDate = CDate(CFloat(parts[1]))
+        entri = New HistroyEntry(description, gDate)
+        entries.Add(entri, gDate & Str(entries.Count)) 
+      End If 
+    End If 
+  Next 
+  
+End 

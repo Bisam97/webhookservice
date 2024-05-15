@@ -1,6 +1,6 @@
 ' Gambas class file
 
-Public Const Version As Float = 0.3 ' TODO: Erhöhen der zahl je änderung der Klasse
+Public Const Version As Float = 0.4 ' TODO: Erhöhen der zahl je änderung der Klasse
 
 Private $name As String
 Private $Action As String[]
@@ -8,12 +8,14 @@ Private $checkID As Boolean
 Private $Version As Float ' TODO: Erhöhen der zahl je änderung der Klasse
 Private $keywordList As String[]
 Private $Active As Boolean
+Private $Histroy As Histroy
 
-Property Name As String
-Property Action As String[]
+Property Read Name As String
+Property Read Action As String[]
 Property Read CheckID As Boolean
 Property Read keyWordList As String[]
 Property Read Active As Boolean
+Property Read LastChanger As String
 
 Private Sub loadconf(Path As String)
   
@@ -21,6 +23,7 @@ Private Sub loadconf(Path As String)
   
   Dim hSettings As Settings
   
+  $histroy = New Histroy
   hSettings = New Settings(User.home &/ ".webhook/" & Path)
   $name = hSettings["Webhook/Name"] 
   $Version = CFloat(hSettings["Webhook/Version"])
@@ -28,6 +31,7 @@ Private Sub loadconf(Path As String)
   $Action = Split(hSettings["Webhook/Action"], "|")
   $keywordList = Split(hSettings["Webhook/KeyWordList"], "|")
   $Active = hSettings["Webhook/Enable", 0]
+  If hSettings.Exist("Histroy/String") Then $histroy.LoadFromString(hSettings["Histroy/String"])
   If $Version < Webhook.Version Then updateConf()
   
 End
@@ -50,6 +54,13 @@ Private Sub updateConf()
       $Version = 0.3
       $Active = True
       saveToConf()
+    Case 0 To 0.3
+      Main.Print("Update " & $name & " to V 0.4")
+      $Version = 0.4
+      $Active = True
+      $Histroy = New Histroy
+      $Histroy.AddEntry("Updater| Update to V 0.4")
+      saveToConf()
     Case Else 
       Print "No Update " & Me.Name & " Version Up to date"
   End Select
@@ -67,6 +78,7 @@ Public Sub saveToConf() As Boolean
   hSettings["Webhook/Version"] = CStr($Version)
   hSettings["Webhook/KeyWordList"] = $keywordList.Join("|")
   hSettings["Webhook/Enable"] = $Active
+  hSettings["Histroy/String"] = $Histroy.SaveToString()
   hSettings.Save()
   Return True
 Catch 
@@ -81,15 +93,48 @@ Public Sub _new(Name As String, CheckID As Boolean, Optional nameIsPath As Boole
     loadconf(name)
     
   Else 
+    $histroy = New Histroy
     $name = name
     $checkID = CheckID
     $Action = Action
     $keywordList = Key
     $Active = True
-    
+    $histroy.AddEntry("Create Webhook")
     $Version = Version  
     
   Endif
+  
+End
+
+Public Sub EDIT(i As Integer, s As String)
+  
+  Select i
+    Case 1 'Edit Name
+      $histroy.AddEntry(User.Name & " | Name Changed " & $name & " -> " & s)
+      Move User.home &/ ".webhook/" & $name & ".conf" To User.home &/ ".webhook/" & s & ".conf"
+      $name = s
+      saveToConf()
+    Case 2 'Edit Check ID
+      $histroy.AddEntry(User.Name & " | CheckID Changed [" & $checkID & "] -> [" & s & "]")
+      $checkID = s
+      saveToConf()
+    Case 3 'Add Key
+      $histroy.AddEntry(User.Name & " | Add Keyword -> " & s)
+      $keywordList.Add(s)
+      saveToConf()
+    Case 4 'Remove Key
+      $histroy.AddEntry(User.Name & " | Remove Keyword -> " & s)
+      $keywordList.Delete($keywordList.Find(s))
+      saveToConf()
+    Case 5 'Add Action
+      $histroy.AddEntry(User.Name & " | Add Action to Script -> " & s)
+      $Action.Add(s)
+      saveToConf()
+    Case 6 'Remove Action
+      $histroy.AddEntry(User.Name & " | Remove Action from Script -> " & s)
+      $Action.Delete(CInt(s))
+      saveToConf()
+  End Select
   
 End
 
@@ -99,21 +144,9 @@ Private Function Name_Read() As String
   
 End
 
-Private Sub Name_Write(Value As String)
-  
-  $name = Value
-  
-End
-
 Private Function Action_Read() As String[]
   
   Return $Action
-  
-End
-
-Private Sub Action_Write(Value As String[])
-  
-  $Action = Value
   
 End
 
@@ -138,5 +171,11 @@ End
 Public Function Toggle()
   
   $Active = Not $Active
+  
+End
+
+Private Function LastChanger_Read() As String
+  
+  Return ""
   
 End
