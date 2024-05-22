@@ -337,7 +337,7 @@ Public Sub Request(Request As String, connection As Socket)''Wertet die Request 
   If request_lines.Find("GET*", gb.Like) >= 0 Then 
     requested_path = Split(request_lines[request_lines.Find("GET*", gb.Like)], " ")
     Print requested_path
-    requested_args = Split(requested_path[1], "?&")
+    requested_args = Split(requested_path[1], "?&", "()")
     
     i = $triggerList.Find(requested_args[0])
     If i > -1 Then
