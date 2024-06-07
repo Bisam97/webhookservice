@@ -30,7 +30,7 @@ Private Sub loadConst()
   Conf["General/Filer"] = $conFilter
   Conf["Connection/Port"] = $conPort
   Conf["Connection/Listen"] = $conListen
-  If Conf["PRG/BLOCK"] = 0 Then
+  If Conf["PRG/BLOCK", 0] = 0 Then
     Conf["PRG/BLOCK"] = Application.Handle
   Else 
     $DNS = True
@@ -489,6 +489,7 @@ Public Sub prgEXIT()
   
   Print pid & " will be shutdown"
   Conf["PRG/BLOCK"] = 0
+  Conf.Save()
   Quit 0
   
 End
@@ -505,5 +506,6 @@ Public Sub Application_Signal(Signal As Integer)
   Endif
   
   Print("Goodbye!\n------------------")
+  Quit
   
 End
