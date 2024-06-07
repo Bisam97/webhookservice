@@ -1,6 +1,6 @@
 ' Gambas class file
 
-Public Const Version As Float = 0.4 ' TODO: Erhöhen der zahl je änderung der Klasse
+Public Const Version As Float = 0.5 ' TODO: Erhöhen der zahl je änderung der Klasse
 
 Private $name As String
 Private $Action As String[]
@@ -9,9 +9,11 @@ Private $Version As Float ' TODO: Erhöhen der zahl je änderung der Klasse
 Private $keywordList As String[]
 Private $Active As Boolean
 Private $Histroy As Histroy
+Private $CollAction As Collection[]
 
 Property Read Name As String
-Property Read Action As String[]
+Property Read Action As String[] '' deprecated
+Property Read CollAction As Collection[]
 Property Read CheckID As Boolean
 Property Read keyWordList As String[]
 Property Read Active As Boolean
@@ -31,6 +33,7 @@ Private Sub loadconf(Path As String)
   $Action = Split(hSettings["Webhook/Action"], "|")
   $keywordList = Split(hSettings["Webhook/KeyWordList"], "|")
   $Active = hSettings["Webhook/Enable", 0]
+  If hSettings.Exist("Webhook/CollAction") Then $CollAction = JSON.Decode(hSettings["Webhook/CollAction", ""])
   If hSettings.Exist("Histroy/String") Then $histroy.LoadFromString(hSettings["Histroy/String"])
   If $Version < Webhook.Version Then updateConf()
   
@@ -41,29 +44,80 @@ Private Sub updateConf()
   Dim hSettings As Settings
   
   hSettings = New Settings(User.home &/ ".webhook/" & $name & ".conf")
+  While $Version < Version
+    
+    Select $Version ''Check Version
+        
+      Case 0 To 0.1
+        Main.Print("Update " & $name & " to V 0.2")
+        $keywordList = ["test"]
+        $Version = 0.2
+        saveToConf()
+      Case 0 To 0.2
+        Main.Print("Update " & $name & " to V 0.3")
+        $Version = 0.3
+        $Active = True
+        saveToConf()
+      Case 0 To 0.3
+        Main.Print("Update " & $name & " to V 0.4")
+        $Version = 0.4
+        $Active = True
+        $Histroy = New Histroy
+        $Histroy.AddEntry("Updater| Update to V 0.4")
+        saveToConf()
+      Case 0 To 0.4
+        Main.Print("Update " & $name & " to V 0.5")
+        $Version = 0.5
+        $Histroy.AddEntry("Updater| Update to V 0.5")
+        ConvertAction()
+        $Histroy.AddEntry("Updater| Action Convert to Collection")
+        LoadAction()
+        saveToConf()
+      Case Else 
+        Print "No Update " & Me.Name & " Version Up to date"
+    End Select
+  Wend
   
-  Select $Version ''Check Version
-      
-    Case 0 To 0.1
-      Main.Print("Update " & $name & " to V 0.2")
-      $keywordList = ["test"]
-      $Version = 0.2
-      saveToConf()
-    Case 0 To 0.2
-      Main.Print("Update " & $name & " to V 0.3")
-      $Version = 0.3
-      $Active = True
-      saveToConf()
-    Case 0 To 0.3
-      Main.Print("Update " & $name & " to V 0.4")
-      $Version = 0.4
-      $Active = True
-      $Histroy = New Histroy
-      $Histroy.AddEntry("Updater| Update to V 0.4")
-      saveToConf()
-    Case Else 
-      Print "No Update " & Me.Name & " Version Up to date"
-  End Select
+End
+
+Public Sub ConvertAction()
+  
+  Dim s As String
+  Dim Prg As String
+  Dim Par As String
+  Dim ParHtmlConv As Boolean
+  Dim NewAction As String[]
+  
+  NewAction = New String[]
+  
+  For Each s In $Action
+    Prg = Split(s, " ")[0]
+    Par = Split(s, " ").Extract(1, -1).Join(" ")
+    ParHtmlConv = True 
+    NewAction.Add(Prg & "µ" & Par & "µ" & ParHtmlConv)
+    
+  Next
+  $Action = NewAction
+  
+End
+
+Public Sub LoadAction()
+  
+  Dim s As String
+  Dim c As Collection
+  Dim spl As String[]
+  
+  $CollAction = New Collection[]
+  For Each s In $Action
+    c = New Collection
+    spl = Split(s, "µ")
+    c.Add(spl.First, "Prg")
+    c.Add(spl.Last, "ParHtmlConv")
+    spl.Remove(0)
+    spl.Remove(spl.Max)
+    c.Add(spl.Join(" "), "Par")
+    $CollAction.Add(c)
+  Next
   
 End
 
@@ -79,6 +133,7 @@ Public Sub saveToConf() As Boolean
   hSettings["Webhook/KeyWordList"] = $keywordList.Join("|")
   hSettings["Webhook/Enable"] = $Active
   hSettings["Histroy/String"] = $Histroy.SaveToString()
+  hSettings["Webhook/CollAction"] = JSON.Encode($CollAction)
   hSettings.Save()
   Return True
 Catch 
@@ -86,7 +141,7 @@ Catch
   
 End
 
-Public Sub _new(Name As String, CheckID As Boolean, Optional nameIsPath As Boolean, Optional Action As String[], Optional Key As String[])
+Public Sub _new(Name As String, CheckID As Boolean, Optional nameIsPath As Boolean, Optional Action As String[], Optional Key As String[], Optional CollAction As Collection[])
   
   If nameIsPath Then 
     
@@ -99,6 +154,7 @@ Public Sub _new(Name As String, CheckID As Boolean, Optional nameIsPath As Boole
     $Action = Action
     $keywordList = Key
     $Active = True
+    $CollAction = CollAction
     $histroy.AddEntry("Create Webhook")
     $Version = Version  
     
@@ -107,6 +163,9 @@ Public Sub _new(Name As String, CheckID As Boolean, Optional nameIsPath As Boole
 End
 
 Public Sub EDIT(i As Integer, s As String)
+  
+  Dim c As Collection
+  Dim spl As String[]
   
   Select i
     Case 1 'Edit Name
@@ -127,12 +186,20 @@ Public Sub EDIT(i As Integer, s As String)
       $keywordList.Delete($keywordList.Find(s))
       saveToConf()
     Case 5 'Add Action
-      $histroy.AddEntry(User.Name & " | Add Action to Script -> " & s)
+      $histroy.AddEntry(User.Name & " | Add Action to Script Collection-> " & s)
+      c = New Collection
+      spl = Split(s, "µ")
+      c.Add(spl.First, "Prg")
+      c.Add(spl.Last, "ParHtmlConv")
+      spl.Remove(0)
+      spl.Remove(spl.Find(spl.Last))
+      c.Add(spl.Join(" "), "Par")
+      $CollAction.Add(c)
       $Action.Add(s)
       saveToConf()
     Case 6 'Remove Action
       $histroy.AddEntry(User.Name & " | Remove Action from Script -> " & s)
-      $Action.Delete(CInt(s))
+      $CollAction.Delete(CInt(s))
       saveToConf()
   End Select
   
@@ -177,5 +244,11 @@ End
 Private Function LastChanger_Read() As String
   
   Return ""
+  
+End
+
+Private Function CollAction_Read() As Collection[]
+  
+  Return $CollAction
   
 End

@@ -82,6 +82,8 @@ Public Sub Edit_Webhook_1(w As Webhook)
   Dim sInput As String
   Dim newName As String
   Dim i As Integer
+  Dim s As String
+  Dim c As Collection
   
   While True
     Shell "clear" Wait 
@@ -101,8 +103,10 @@ Public Sub Edit_Webhook_1(w As Webhook)
     Print "4. Action Script:"
     Print "-------Action----Script------------"
     i = 0
-    For Each Action In w.Action
-      Print i & " " & Action
+    For Each c In w.CollAction
+      
+      Print i & "| " & c["Prg"] & " " & c["Par"] & " <" & c["ParHtmlConv"] & ">"
+      
       i += 1
     Next
     Print "------END---Action----Script-------"
@@ -152,11 +156,19 @@ Public Sub Edit_Webhook_1(w As Webhook)
         
         If sInput = "A" Then 
           
-          Write #File.out, "Add New Action -> "
+          Write #File.out, "Add New Action Programm-> "
           Flush #File.out
           Line Input #File.in, sInput
-          
-          w.EDIT(5, sInput)
+          s = sInput
+          Write #File.out, "Add New Action Args (All)-> "
+          Flush #File.out
+          Line Input #File.in, sInput
+          s &= "µ" & sInput
+          Write #File.out, "Convert Parameter to html Escape?(0/1)-> "
+          Flush #File.out
+          Line Input #File.in, sInput
+          s &= "µ" & sInput
+          w.EDIT(5, s)
           
         Else If sInput = "R" Then 
           Write #File.out, "Remove Action (No. of Line) -> "
@@ -177,11 +189,12 @@ Public Sub Add_Webhook()
   
   Dim sinput As String
   Dim name As String
-  Dim Action As New String[]
+  Dim Action As New Collection[]
   Dim checkID As String
   Dim bcheckID As Boolean
   Dim w As Webhook
   Dim Key As New String[]
+  Dim c As Collection
   
   Print
   Print
@@ -211,18 +224,30 @@ Public Sub Add_Webhook()
   Print "what do the webhook after the Trigger is triggered? End with a Empty Line\nPlease insert a comand like 'Hello World'"
   sInput = "1"
   While sInput
-    Write #File.out, "Action -> "
-    Flush #File.Out
-    Line Input #File.in, sinput
-    If sinput Then Action.Add(sinput)
+    c = New Collection
+    Print "New Action (Leave Blank to Break out the loop)"
+    Write #File.out, "Add New Action Programm-> "
+    Flush #File.out
+    Line Input #File.in, sInput
+    If Not sInput Then Break 
+    c.Add(sInput, "Prg")
+    Write #File.out, "Add New Action Args (All)-> "
+    Flush #File.out
+    Line Input #File.in, sInput
+    c.Add(sInput, "Par")
+    Write #File.out, "Convert Parameter to html Escape?(0/1)-> "
+    Flush #File.out
+    Line Input #File.in, sInput
+    c.Add(CBool(CInt(sInput)), "ParHtmlConv")
+    Action.Add(c)
   Wend
   Print
   Print "Empty Line get\n\nyou insert This:"
   Print "Name -> " & name
   Print "CheckID -> " & checkID
   Print "-------Action----Script------------"
-  For Each sInput In Action
-    Print sInput
+  For Each c In Action
+    Print c["Prg"] & " " & c["Par"] & " <" & c["ParHtmlConv"] & ">"
   Next
   Print "------END---Action----Script-------"
   Print "-------------Keys----------------"
@@ -233,7 +258,7 @@ Public Sub Add_Webhook()
   
   Print "Save Webhook config...."
   
-  w = New Webhook(name, bcheckID, False, Action, Key)
+  w = New Webhook(name, bcheckID, False, [], Key, Action)
   Print w.saveToConf()
   
 End
