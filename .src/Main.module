@@ -10,6 +10,7 @@ Private $log As Logger
 
 Private $conFilter As String '' like Filter String
 Private $conPort As Integer ''Port of the server
+Private $conListen As Integer
 
 Private Sub loadConst()
   
@@ -17,8 +18,12 @@ Private Sub loadConst()
   
   $conFilter = Conf["General/Filer", "*%*%*"]
   $conPort = Conf["Connection/Port", 9090]
+  $conListen = Conf["Connection/Listen", 1]
   If $conPort = 9090 Then 
     Print("If you want to change the Port edit the Settings File: " & Conf.Path & "")
+  Endif
+  If $conListen = 1 Then 
+    Print ("if you want to change the number of listening connections edit the Settings File: " & Conf.Path & "")
   Endif
   If Not Exist(conf.Path) Then
     Conf["General/Filer"] = $conFilter
@@ -296,7 +301,7 @@ Public Sub init_server()''create the server
   Print("Set Port to: " & port_number & " ...")
   server.Port = port_number
   server.Type = Net.Internet
-  server.Listen(1)
+  server.Listen($conListen)
   While Server.Status Not Net.Active
     Wait 0.1
     Print("Starting...")
@@ -317,12 +322,15 @@ Public Sub Socket_Read()''Liest die Request vom Client
   Dim read_string As String
   Dim connection As Socket
   
-  Print("Incomming Request\n\n")
+  Print("Incomming Request\n----------------------------------")
   read_string = ""
   read_string = Read #Last, Lof(Last)
   Print(read_string)
   connection = Last
   Request(read_string, connection)
+  Wait 1
+  Print("Request done -> close connection")
+  connection.Close()
   
 End
 
@@ -337,7 +345,7 @@ Public Sub Request(Request As String, connection As Socket)''Wertet die Request 
   If request_lines.Find("GET*", gb.Like) >= 0 Then 
     requested_path = Split(request_lines[request_lines.Find("GET*", gb.Like)], " ")
     Print requested_path
-    requested_args = Split(requested_path[1], "?&")
+    requested_args = Split(requested_path[1], "?&", "()", True, True)
     
     i = $triggerList.Find(requested_args[0])
     If i > -1 Then
