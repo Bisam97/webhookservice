@@ -1,11 +1,11 @@
 # Gambas Project File 3.0
 Startup=Main
 Version=0.4.0
-VersionFile=1
 Component=gb.args
 Component=gb.settings
 Component=gb.logging
 Component=gb.net
+Component=gb.signal
 TabSize=2
 Language=en_US
 Maintainer=bisam97

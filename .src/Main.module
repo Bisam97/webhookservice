@@ -11,6 +11,7 @@ Private $log As Logger
 Private $conFilter As String '' like Filter String
 Private $conPort As Integer ''Port of the server
 Private $conListen As Integer
+Private $DNS As Boolean
 
 Private Sub loadConst()
   
@@ -25,11 +26,18 @@ Private Sub loadConst()
   If $conListen = 1 Then 
     Print ("if you want to change the number of listening connections edit the Settings File: " & Conf.Path & "")
   Endif
-  If Not Exist(conf.Path) Then
-    Conf["General/Filer"] = $conFilter
-    Conf["Connection/Port"] = $conPort
-    conf.Save
-  Endif
+  
+  Conf["General/Filer"] = $conFilter
+  Conf["Connection/Port"] = $conPort
+  Conf["Connection/Listen"] = $conListen
+  If Conf["PRG/BLOCK"] = 0 Then
+    Conf["PRG/BLOCK"] = Application.Handle
+  Else 
+    $DNS = True
+    
+  Endif 
+  
+  conf.Save
   
 End
 
@@ -78,6 +86,28 @@ Public Sub Main() ''Main Code
   Dim toggle_webhook As Boolean
   Dim setup_programm As Boolean
   Dim install_To_systemd As Boolean
+  Dim prg_exit As Boolean
+  
+  Args.Begin(Application.Name & " [options]")
+  start_Server = Args.Has("s", "start", "Start Server")
+  get_New_ID = Args.Has("i", "newid", "get a new Request ID for a new Client")
+  set_new_trigger = Args.Has("w", "webhook", "new/edit Webhook Dialog")
+  toggle_webhook = Args.has("t", "toggle", "Toggle a webhook Enable/Disable")
+  setup_programm = Args.Has(Null, "setup", "Setup Dialog for the programm Server")
+  install_To_systemd = Args.Has("i", "install", "Install Systemd Unit and Enable/Start")
+  prg_exit = Args.Has(Null, "exit", "Save closing the Running Program")
+  
+  Args.End()
+  
+  If prg_exit Then
+    prgEXIT()
+  Endif
+  
+  $log = New Logger(4, "$(time): $(message)", "/var/log/webhook/" & Day(Now) & Month(Now) & Year(Now) & ".log")
+  $log.Begin()
+  Print("archive old log Files to /var/log/webhook/archive/" & Year(Now) &/ Month(Now))
+  ArciveLog()
+  Print("Hello world")
   
   If Not Exist(User.Home & "/.webhook") Then
     Try Mkdir User.Home & "/.webhook"
@@ -95,20 +125,6 @@ Public Sub Main() ''Main Code
     Endif
   Endif
   
-  $log = New Logger(4, "$(time): $(message)", "/var/log/webhook/" & Day(Now) & Month(Now) & Year(Now) & ".log")
-  $log.Begin()
-  Print("archive old log Files to /var/log/webhook/archive/" & Year(Now) &/ Month(Now))
-  ArciveLog()
-  Print("Hello world")
-  Args.Begin(Application.Name & " [options]")
-  start_Server = Args.Has("s", "start", "Start Server")
-  get_New_ID = Args.Has("i", "newid", "get a new Request ID for a new Client")
-  set_new_trigger = Args.Has("w", "webhook", "new/edit Webhook Dialog")
-  toggle_webhook = Args.has("t", "toggle", "Toggle a webhook Enable/Disable")
-  setup_programm = Args.Has(Null, "setup", "Setup Dialog for the programm Server")
-  install_To_systemd = Args.Has("i", "install", "Install Systemd Unit and Enable/Start")
-  
-  Args.End()
   If install_To_systemd Then 
     Shell "systemctl enable webhook" Wait
     Shell "Systemctl start webhook" Wait
@@ -296,17 +312,23 @@ End
 
 Public Sub init_server()''create the server
   
-  Try server.Close()
-  
-  Print("Set Port to: " & port_number & " ...")
-  server.Port = port_number
-  server.Type = Net.Internet
-  server.Listen($conListen)
-  While Server.Status Not Net.Active
-    Wait 0.1
-    Print("Starting...")
-  Wend
-  Print("Server Started and Listen")
+  If Not $DNS Then
+    Signal[Signal.SIGUSR1].Catch
+    Try server.Close()
+    
+    Print("Set Port to: " & port_number & " ...")
+    server.Port = port_number
+    server.Type = Net.Internet
+    server.Listen($conListen)
+    While Server.Status Not Net.Active
+      Wait 0.1
+      Print("Starting...")
+    Wend
+    Print("Server Started and Listen")
+    
+  Else 
+    Error.Raise("DNS (Do Not Start) is Active Please look if the server not running (Lock file)")
+  Endif 
   
 End 
 
@@ -452,5 +474,36 @@ Public Sub Send_ACK(connection As Socket, success_code As Integer, Optional keyw
   End Select 
   Write #connection, response, response.Len
   Flush #connection
+  
+End
+
+Public Sub prgEXIT()
+  
+  Dim Conf As Settings
+  Dim pid As Integer
+  
+  Conf = New Settings
+  pid = Conf["PRG/BLOCK"]
+  
+  Signal.Send(pid, Signal.SIGUSR1)
+  
+  Print pid & " will be shutdown"
+  Conf["PRG/BLOCK"] = 0
+  Quit 0
+  
+End
+
+Public Sub Application_Signal(Signal As Integer)
+  
+  Print("SIGUSR1 get")
+  Print("I shutdown!")
+  Try server.Close()
+  If Error Then 
+    Print("Can't close the server")
+  Else 
+    Print("Server Closed")
+  Endif
+  
+  Print("Goodbye!\n------------------")
   
 End
