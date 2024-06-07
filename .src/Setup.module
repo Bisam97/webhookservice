@@ -50,7 +50,7 @@ Catch
   Print Error.Where
   Print Error.Backtrace.Join(" | ")
   Quit 1
-
+  
 End
 
 Public Sub NginXConfigure() As Boolean
