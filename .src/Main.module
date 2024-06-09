@@ -377,16 +377,6 @@ Public Sub Request(Request As String, connection As Socket)''Wertet die Request 
       Send_ACK(connection, 400)
     Endif
     
-    ' Select requested_args[0]
-    '   Case "/test"
-    '     webhook_test(requested_args, connection)
-    '   Case "/alarm"
-    '     webhook_einsatz(requested_args, connection)
-    '   Case "/response"
-    '     webhook_reponse(requested_args, connection)
-    '   Case Else 
-    '     Send_ACK(connection, 400)
-    ' End Select
   Endif
   
 End
