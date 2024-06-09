@@ -394,6 +394,7 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
   Dim sb As String
   Dim sc As String
   Dim sd As String
+  Dim c As Collection
   
   If hook.CheckID Then 
     ID = Exist_ID(requested_args)
@@ -414,7 +415,9 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
       Endif 
     Next
     
-    For Each s In hook.Action
+    For Each c In hook.CollAction
+      s = c["Prg"] & c["Par"]
+      
       sa = Split(s, " ", "\"")
       If sa.Find($conFilter, gb.Like) > -1 Then
         s = sa[sa.Find($conFilter, gb.like)]
@@ -435,6 +438,7 @@ Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As 
           Endif
         Next
       Endif
+      sa[1] = CHTTP(sa[1], CBool(c["ParHtmlConv"]))
       Exec sa Wait
       
     Next
@@ -445,6 +449,33 @@ Catch
   Print(Error.Code)
   Print(Error.Text)
   Print(Error.Where)
+  
+End
+
+Public Sub CHTTP(uri As String, convert As Boolean) As String
+  
+  Dim nUri As String
+  Dim i As Integer
+  Dim s As String
+  
+  If convert Then
+    nUri = ""
+    i = 0
+    While i <= String.Len(uri)
+      i += 1
+      s = String.Mid(uri, i, 1)
+      Select s
+        Case "&"
+          nuri &= "%26"
+        Case Else
+          nUri &= s
+      End Select
+    Wend
+    
+    uri = nUri
+  Endif
+  
+  Return uri
   
 End
 
