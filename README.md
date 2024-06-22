@@ -2,7 +2,13 @@
 
 ## Installing 
 
+  !! For All Distros !!
+  
+  Add User webhooklog
+
+    
 ### Debian Based distros
+  
   Download the .deb package for Debian or Ubuntu and install it.
 
   Debian
@@ -25,3 +31,19 @@
   If you have systemd
 
     cp webhookservice/.hidden/webhook.service /etc/systemd/system/
+
+## Features
+
+ This programm can:
+ 
+   * Gen Unique ID  to identify the Requester
+   * CLI Webhook add / Edit dialog
+   * Activate / Deactivate Webhooks
+   * can Run as Systemd Service
+   * Only Support HTTP but with NGINX Reverse Proxy is HTTPS also Supported
+   * logging and sort Logs at the next Day in /var/log/webhook/archive/YYYY/MM/DDMMYYYY.log (1.1.2024 is 112024.log)
+
+ToDo:
+  * Better Logging
+  * Block Portscaner with fake response
+  * FixBugs
