@@ -87,6 +87,7 @@ Public Sub Main() ''Main Code
   Dim setup_programm As Boolean
   Dim install_To_systemd As Boolean
   Dim prg_exit As Boolean
+  Dim bdiagnose As Boolean
   
   Args.Begin(Application.Name & " [options]")
   start_Server = Args.Has("s", "start", "Start Server")
@@ -96,11 +97,15 @@ Public Sub Main() ''Main Code
   setup_programm = Args.Has(Null, "setup", "Setup Dialog for the programm Server")
   install_To_systemd = Args.Has("i", "install", "Install Systemd Unit and Enable/Start")
   prg_exit = Args.Has(Null, "exit", "Save closing the Running Program")
+  bdiagnose = Args.Has("d", "diagnose", "Diagnose for Fail Start")
   
   Args.End()
   
   If prg_exit Then
     prgEXIT()
+  Endif
+  If bdiagnose Then 
+    Diagnose.Go()
   Endif
   
   $log = New Logger(4, "$(time): $(message)", "/var/log/webhook/" & Day(Now) & Month(Now) & Year(Now) & ".log")
@@ -139,7 +144,6 @@ Public Sub Main() ''Main Code
   If set_new_trigger Then
     loadWebhooks(True)
     Print("Add New/Edit Webhook...")
-    
     AddTrigger.Add_Trigger(webhooks)
     Quit
   Endif
