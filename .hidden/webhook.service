@@ -7,6 +7,8 @@ Wants=network-online.target
 Type=exec
 ExecStart=webhookservice -s
 ExecStop=webhookservice --exit
+ExecStopPost=webhookservice --diagnose
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target

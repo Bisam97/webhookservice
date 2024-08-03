@@ -44,8 +44,12 @@ Public Sub Go()
   
   If DNS Then TryrmDNS()
   
-  If Not Exist(User.Home &/ ".config/b97prgs") Then Mkdir User.Home &/ ".config/b97prgs"
-  SendMail(Protokoll)
+  If DNS Or Conf Then
+    
+    If Not Exist(User.Home &/ ".config/b97prgs") Then Mkdir User.Home &/ ".config/b97prgs"
+    SendMail(Protokoll)
+    
+  Endif
   Quit 
   
 End
