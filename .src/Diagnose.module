@@ -1,0 +1,116 @@
+' Gambas module file
+
+Private $Protokoll As String[]
+
+Public Sub Go()
+  
+  Dim Protokoll As String[]
+  Dim DNS As Boolean
+  Dim Conf As Boolean
+  
+  Protokoll = New String[]
+  $Protokoll = Protokoll
+  
+  Protokoll.Add("--Diagnose--Protocoll--")
+  Protokoll.Add("Programm Version: " & Application.Version)
+  Protokoll.Add("Date: " & Now)
+  Protokoll.Add("---Header--------END---")
+  
+  Print "Test If DNS (Do Not Start) is Set"
+  
+  If TestDNS() Then 
+    
+    Print "[X] DNS Test is pass. DNS is Set"
+    Protokoll.Add("[X] DNS Test is pass. DNS is Set")
+    DNS = True
+    
+  Else 
+    
+    Print "[X] DNS Test is pass"
+    Protokoll.Add("[X] DNS Test is pass")
+  Endif
+  
+  If TestConf() Then 
+    
+    Print "[X] Conf Test is pass. Conf fail"
+    Protokoll.Add("[X] Conf Test is pass. Conf fail")
+    Conf = True
+    
+  Else 
+    
+    Print "[X] Conf Test is pass"
+    Protokoll.Add("[X] Conf Test is pass")
+  Endif
+  
+  If DNS Then TryrmDNS()
+  
+  If Not Exist(User.Home &/ ".config/b97prgs") Then Mkdir User.Home &/ ".config/b97prgs"
+  SendMail(Protokoll)
+  Quit 
+  
+End
+
+Public Sub TestDNS() As Boolean
+  
+  Dim Conf As Settings
+  Dim i As Integer
+  
+  Conf = New Settings
+  i = Conf["PRG/BLOCK"]
+  If i = 0 Then Return False
+  $Protokoll.Add(i & " is set DNS is set")
+  
+  Return True
+  
+End
+
+Public Sub TestConf() As Boolean
+  
+  Return False
+  
+End
+
+Public Sub TryrmDNS()
+  
+  Dim Conf As Settings
+  Dim i As Integer
+  Dim ps As Process
+  
+  $Protokoll.Add("Try to remove DNS")
+  Conf = New Settings
+  
+  i = Conf["PRG/BLOCK"]
+  ps = Shell "ps -p " & i Wait 
+  
+  If ps.Crashed Then
+    Conf["PRG/BLOCK"] = 0
+    $Protokoll.Add("removed DNS LOCK")
+  Endif
+  
+End
+
+Public Sub SendMail(Protokoll As String[])
+  
+  Dim Conf As New Settings(User.Home &/ ".config/b97prgs/mail.conf")
+  
+  Dim Email As New SmtpClient
+  Dim n As String[]
+  Dim s As String
+  
+  Email.Host = Conf["Email/Host", "localhost"]
+  Email.Port = Conf["Email/Port", 25]
+  Email.User = Conf["Email/User", User.Home]
+  Email.Password = Conf["Email/Pass", ""]
+  Email.From = Conf["Email/User", User.Name]
+  n = JSON.Decode(Conf["Email/To", "[root@localhost]"])
+  For Each s In n
+    Email.To.Add(s)
+  Next
+  Email.Subject = "Diagnostic of Webhookservice " & Day(Now) & " " & StringDate.MonthString(Month(Now)) & " " & Year(Now)
+  Email.Add(Protokoll.Join("\n"))
+  Email.Encrypt = Conf["Email/Enc"]
+  Email.Authentication = Conf["Email/Auth", SmtpClient.None]
+  Email.Debug = False
+  Email.Send()
+  
+End

@@ -4,6 +4,89 @@ Public Sub Main()
   
   Dim n As String
   
+  Print "Setup v0.2.0"
+  Print
+  Print
+  Print "   Select the settings Tab "
+  Print "     1. Reverse Setup"
+  Print "     2. Mail Settings (Diagnostic Data if the Service Failed)"
+  
+  Write #File.Out, "Witch Settings?  -> "
+  Flush #File.Out
+  Line Input #File.in, n
+  
+  If n = "1" Then Reverse()
+  If n = "2" Then Mail()
+  
+  Shell "clear" Wait
+  Print "Setup Done"
+  Quit
+  
+End
+
+Public Sub Mail()
+  
+  Dim n As String
+  Dim Conf As Settings
+  Dim Mail As String[]
+  
+  If Not Exist(User.Home &/ ".config/b97prgs") Then Mkdir User.Home &/ ".config/b97prgs"
+  Conf = New Settings(User.Home &/ ".config/b97prgs/mail.conf")
+  
+  Shell "clear" Wait
+  
+  Print "Setup Mail v0.1.0"
+  Print
+  Print "Enter your Mail Host"
+  Line Input #File.in, n
+  
+  Conf["Email/Host"] = n
+  Print
+  Print "Enter the Port of the server"
+  Line Input #File.in, n
+  
+  Conf["Email/Port"] = CInt(n)
+  
+  Print "Enter the email or emails to the Diagnostic go"
+  Mail = New String[]
+  While n
+    Write #File.out, "Email -> "
+    Flush #File.Out
+    Line Input #File.in, n
+    If n Then Mail.Add(n)
+  Wend
+  Conf["Email/To"] = JSON.Encode(Mail)
+  
+  Print
+  Print "If the Mailserver use \n 1. No Encryption\n 2. SSL\n 3. TLS"
+  Line Input #File.in, n
+  If n = "1" Then Conf["Email/Enc"] = Net.None
+  If n = "2" Then Conf["Email/Enc"] = Net.SSL
+  If n = "3" Then Conf["Email/Enc"] = Net.TLS
+  
+  Print
+  Print "If the Mailserver use Authiacation\n 1. yes\n 2. no"
+  Line Input #File.in, n
+  If n = "1" Then Conf["Email/Auth"] = SmtpClient.Automatic
+  If n = "2" Then Conf["Email/Auth"] = SmtpClient.None
+  Print
+  Print "Enter the Login Username"
+  Line Input #File.in, n
+  
+  Conf["Email/User"] = n
+  Print
+  Print "Enter the Password (If you dont want than use Postfix and enter this in the Conf)"
+  Line Input #File.in, n
+  Conf["Email/Pass"] = n
+  
+  Conf.Save()
+  
+End
+
+Public Sub Reverse()
+  
+  Dim n As String
+  
   Print
   Print
   Print
