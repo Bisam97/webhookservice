@@ -1,8 +1,9 @@
 # Gambas Project File 3.0
 Startup=Main
 Version=1.0.2
+VersionFile=1
 Component=gb.net
-Component=b97.gb.b97.net.smtp
+Component=b97.gb.net.smtp
 Component=b97.gb.stringdate
 Component=gb.args
 Component=gb.settings
@@ -16,8 +17,9 @@ Vendor=bisam97
 VendorPrefix=b97
 Address=bisam97@bisam97.de
 License=General Public License
-PackageName=webhookservice-1.1.0
+PackageName=webhookservice-1.3.1
 CreateEachDirectory=1
+RuntimeVersion="3.19"
 Packager=1
 Systems=autotools,ubuntu
 SameFiles=1
