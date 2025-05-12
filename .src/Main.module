@@ -109,7 +109,7 @@ Public Sub Main() ''Main Code
   Endif
   
   $log = New Logger(4, "$(time): $(message)", "/var/log/webhook/" & Day(Now) & Month(Now) & Year(Now) & ".log")
-  $log.Begin()
+  '$log.Begin()
   Print("archive old log Files to /var/log/webhook/archive/" & Year(Now) &/ Month(Now))
   ArciveLog()
   Print("Hello world")
@@ -385,76 +385,160 @@ Public Sub Request(Request As String, connection As Socket)''Wertet die Request 
   
 End
 
-Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As String[], connection As Socket)
+Public Sub webhook_Action(trigger As String, hook As Webhook, requestedArgs As String[], connection As Socket) 
   
-  Dim ID As Boolean
-  Dim s As String
-  Dim sa As String[]
-  Dim Coll As New Collection
-  Dim key As String
-  Dim keyword As String
-  Dim indexa As Integer
-  Dim indexb As Integer
-  Dim sb As String
-  Dim sc As String
-  Dim sd As String
-  Dim c As Collection
+  Dim hasValidID As Boolean 
+  Dim commandLine As String 
+  Dim commandParts As String[] 
+  Dim extractedValues As New Collection 
+  Dim placeholderKey As String 
+  Dim varPlaceholder As String 
+  Dim varStart As Integer 
+  Dim varEnd As Integer 
+  Dim beforePlaceholder As String 
+  Dim afterPlaceholder As String 
+  Dim action As Collection 
+  Dim execArray As String[] 
+  Dim t As Process
   
-  If hook.CheckID Then 
-    ID = Exist_ID(requested_args)
+  ' Überprüfe, ob die ID notwendig ist
+  If hook.CheckID Then  
+    hasValidID = Exist_ID(requestedArgs) 
+  Else  
+    hasValidID = True 
+    Send_ACK(connection, 200) 
+  Endif 
+  
+  If hasValidID Then  
+    Send_ACK(connection, 200) 
     
-  Else 
-    ID = True
-    Send_ACK(connection, 200)
-  Endif
-  
-  If ID Then 
-    Send_ACK(connection, 200)
-    For Each key In hook.keyWordList
-      If requested_args.Find(key & "=*", gb.Like) >= 0 Then
-        keyword = requested_args[requested_args.Find(key & "=*", gb.Like)]
-        Coll[key] = Right(keyword, keyword.Len - 1 - key.Len)
-      Else 
-        Coll[key] = ""
-      Endif 
-    Next
+    ' Extrahiere Parameterwerte aus den übergebenen Argumenten
+    For Each placeholderKey In hook.keyWordList 
+      Dim fullKey As String = placeholderKey & "=*" 
+      Dim matchIndex As Integer = requestedArgs.Find(fullKey, gb.Like) 
+      If matchIndex >= 0 Then 
+        extractedValues[placeholderKey] = Mid(requestedArgs[matchIndex], Len(placeholderKey) + 2) 
+      Else  
+        extractedValues[placeholderKey] = "" 
+      Endif  
+    Next 
     
-    For Each c In hook.CollAction
-      s = c["Prg"] & c["Par"]
+    ' Jede definierte Aktion abarbeiten
+    For Each action In hook.CollAction 
+      ' Zusammensetzen des Kommandos und Aufsplitten in Argumente
+      commandLine = action["Prg"] & " " & action["Par"] 
+      commandParts = Split(commandLine, " ", "\"", True)
       
-      sa = Split(s, " ", "\"")
-      If sa.Find($conFilter, gb.Like) > -1 Then
-        s = sa[sa.Find($conFilter, gb.like)]
-        indexa = String.InStr(s, "%")
-        indexb = String.InStr(s, "%", indexa + 1)
-        sb = String.Left(s, indexa - 1)
-        sc = String.Right(s, -indexb)
-        sd = String.Mid(s, indexa + 1, indexb - indexa - 1)
+      ' Ersetze Platzhalter, z. B. %myParam%
+      Dim i As Integer = commandParts.Find($conFilter, gb.Like) 
+      If i > -1 Then 
+        Dim placeholder As String = commandParts[i] 
+        varStart = InStr(placeholder, "%") 
+        varEnd = InStr(placeholder, "%", varStart + 1) 
         
-        For Each key In hook.keyWordList
-          If key == String.Left(sd, key.Len) Then
-            
-            sd = Coll[key]
-            s = sb & sd & sc
-            Print(s)
-            sa[sa.Find($conFilter, gb.like)] = s
-            Break 
-          Endif
-        Next
-      Endif
-      sa[1] = CHTTP(sa[1], CBool(c["ParHtmlConv"]))
-      Exec sa Wait
+        If varStart > 0 And varEnd > varStart Then 
+          beforePlaceholder = Left(placeholder, varStart - 1) 
+          afterPlaceholder = Mid(placeholder, varEnd + 1) 
+          varPlaceholder = Mid(placeholder, varStart + 1, varEnd - varStart - 1) 
+          
+          For Each placeholderKey In hook.keyWordList 
+            If varPlaceholder Begins placeholderKey Then 
+              commandParts[i] = beforePlaceholder & extractedValues[placeholderKey] & afterPlaceholder 
+              Exit 
+            Endif 
+          Next 
+        Endif 
+      Endif 
       
-    Next
-  Else 
-    Send_ACK(connection, 403)
-  Endif
+      ' Optional HTML-Kodierung
+      commandParts[1] = CHTTP(commandParts[1], CBool(action["ParHtmlConv"])) 
+      
+      ' Übergabe an Exec direkt als Array
+      Exec commandParts Wait
+      
+    Next 
+  Else  
+    Send_ACK(connection, 403) 
+  Endif 
+  
 Catch 
-  Print(Error.Code)
-  Print(Error.Text)
-  Print(Error.Where)
+  Print("Fehlercode: " & Error.Code) 
+  Print("Fehlertext: " & Error.Text) 
+  Print("Fehlerstelle: " & Error.Where) 
   
 End
+' Public Sub webhook_Action(trigger As String, hook As Webhook, requested_args As String[], connection As Socket)
+'   
+'   Dim ID As Boolean
+'   Dim s As String
+'   Dim sa As String[]
+'   Dim Coll As New Collection
+'   Dim key As String
+'   Dim keyword As String
+'   Dim indexa As Integer
+'   Dim indexb As Integer
+'   Dim sb As String
+'   Dim sc As String
+'   Dim sd As String
+'   Dim c As Collection
+'   Dim t As Process
+'   
+'   If hook.CheckID Then 
+'     ID = Exist_ID(requested_args)
+'     
+'   Else 
+'     ID = True
+'     Send_ACK(connection, 200)
+'   Endif
+'   
+'   If ID Then 
+'     Send_ACK(connection, 200)
+'     For Each key In hook.keyWordList
+'       If requested_args.Find(key & "=*", gb.Like) >= 0 Then
+'         keyword = requested_args[requested_args.Find(key & "=*", gb.Like)]
+'         Coll[key] = Right(keyword, keyword.Len - 1 - key.Len)
+'       Else 
+'         Coll[key] = ""
+'       Endif 
+'     Next
+'     
+'     For Each c In hook.CollAction
+'       s = c["Prg"] & c["Par"]
+'       
+'       sa = Split(s, " ", "\"")
+'       
+'       If sa.Find($conFilter, gb.Like) > -1 Then
+'         s = sa[sa.Find($conFilter, gb.like)]
+'         indexa = String.InStr(s, "%")
+'         indexb = String.InStr(s, "%", indexa + 1)
+'         sb = String.Left(s, indexa - 1)
+'         sc = String.Right(s, -indexb)
+'         sd = String.Mid(s, indexa + 1, indexb - indexa - 1)
+'         
+'         For Each key In hook.keyWordList
+'           If key == String.Left(sd, key.Len) Then
+'             
+'             sd = Coll[key]
+'             s = sb & sd & sc
+'             Print(s)
+'             sa[sa.Find($conFilter, gb.like)] = s
+'             
+'             Break 
+'           Endif
+'         Next
+'       Endif
+'       sa[1] = CHTTP(sa[1], CBool(c["ParHtmlConv"]))
+'       Exec [sa[0], sa[1]] Wait
+'     Next
+'   Else 
+'     Send_ACK(connection, 403)
+'   Endif
+' Catch 
+'   Print(Error.Code)
+'   Print(Error.Text)
+'   Print(Error.Where)
+'   
+' End
 
 Public Sub CHTTP(uri As String, convert As Boolean) As String
   
